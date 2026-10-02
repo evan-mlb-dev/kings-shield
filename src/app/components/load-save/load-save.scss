@@ -1,0 +1,14 @@
+@use '../../shared/button';
+
+.load-save-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding-right: 10px;
+}
+
+.save-file-name {
+  padding-right: 10px;
+}

@@ -1,0 +1,42 @@
+.team-builder-container {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.team {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  padding: 8px 12px;
+  border: 1px solid #888;
+  border-radius: 8px;
+}
+
+.card.shiny {
+  border-color: gold;
+}
+
+.card h3 {
+  margin: 0 0 6px;
+}
+
+.card p {
+  margin: 2px 0;
+}
+
+.card .types,
+.card .item,
+.card li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card ul {
+  padding-left: 0;
+  list-style: none;
+}

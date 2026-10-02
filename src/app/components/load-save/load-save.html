@@ -1,0 +1,18 @@
+<div class="load-save-container">
+  @if (gameState.saveName()) {
+    <div class="save-file-name">
+      {{ gameState.saveName() }}
+    </div>
+  } @else {
+    <div class="save-file-name">No save file.</div>
+  }
+  <button class="load-save-button button-style-1" (click)="fileInput.click()">Load Save</button>
+
+  <input
+    type="file"
+    #fileInput
+    style="display: none"
+    (change)="onFileSelected($event)"
+    accept=".sav"
+  />
+</div>

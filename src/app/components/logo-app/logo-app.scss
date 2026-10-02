@@ -1,0 +1,31 @@
+.logo-app-container {
+  position: relative;
+  top: -16px;
+  display: flex;
+  width: 250;
+  padding-left: 5px;
+
+  .logo-app {
+    width: 90px;
+  }
+
+  .titlte-app {
+    position: absolute;
+    top: 28px;
+    right: -110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--primary-color);
+    color: transparent;
+    letter-spacing: 0.02em;
+    background: var(--gold-gradient);
+    background-clip: text;
+    text-rendering: optimizelegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+}
