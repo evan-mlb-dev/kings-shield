@@ -1,1 +1,83 @@
-<p>pokemon-card works!</p>
+@let mon = pokemon();
+
+@if (variant() === 'mini') {
+  <div
+    class="mini-card"
+    [class.shiny]="mon.isShiny"
+    [title]="mon.nickname + ' (' + mon.speciesName + ')'"
+  >
+    <app-pokemon-sprite [speciesId]="mon.speciesId" [name]="mon.speciesName" />
+    @if (mon.heldItem; as item) {
+      <app-item-icon class="mini-item" [id]="item.id" [name]="item.name" />
+    }
+    @if (mon.isShiny) {
+      <span class="shiny-star" title="Shiny">★</span>
+    }
+    <span class="mini-name">{{ mon.nickname }}</span>
+  </div>
+} @else {
+  <article class="card" [class.shiny]="mon.isShiny">
+    <header class="card-head">
+      <div class="sprite-wrap">
+        <app-pokemon-sprite [speciesId]="mon.speciesId" [name]="mon.speciesName" />
+        @if (mon.isShiny) {
+          <span class="shiny-star" title="Shiny">★</span>
+        }
+      </div>
+
+      <div class="identity">
+        <h3 class="name">{{ mon.nickname }}</h3>
+        @if (mon.nickname !== mon.speciesName) {
+          <span class="species">{{ mon.speciesName }}</span>
+        }
+        <div class="types">
+          @for (t of mon.types; track t.id) {
+            <app-type-icon [name]="t.name" />
+          }
+        </div>
+      </div>
+
+      @if (mon.level) {
+        <span class="level">Lv {{ mon.level }}</span>
+      }
+    </header>
+
+    <dl class="details">
+      <dt>Ability</dt>
+      <dd>{{ mon.ability?.name ?? '?' }}</dd>
+      <dt>Nature</dt>
+      <dd>{{ mon.nature?.name ?? '?' }}</dd>
+      <dt>Item</dt>
+      <dd class="item">
+        @if (mon.heldItem; as item) {
+          <app-item-icon [id]="item.id" [name]="item.name" />
+          <span>{{ item.name }}</span>
+        } @else {
+          <span class="muted">None</span>
+        }
+      </dd>
+    </dl>
+
+    <section class="moves-section">
+      <h4 class="section-title">Moves</h4>
+      <ul class="moves">
+        @for (m of mon.moves; track m.id) {
+          <li
+            class="move"
+            [style.--move-color]="typeColor(m.type.name)"
+            [title]="
+              m.type.name + ' · ' + m.category + (m.description ? ' — ' + m.description : '')
+            "
+          >
+            <app-move-category-icon [category]="m.category" />
+            <span class="move-name">{{ m.name }}</span>
+            <span class="move-power" [title]="'Power'">{{ m.power ?? '—' }}</span>
+          </li>
+        }
+        @for (i of emptyMoveRows(); track i) {
+          <li class="move empty" aria-hidden="true">—</li>
+        }
+      </ul>
+    </section>
+  </article>
+}

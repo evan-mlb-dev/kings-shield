@@ -5,7 +5,15 @@ body {
   font-style: normal;
   font-weight: 300;
   color: white;
+
+  user-select: none;
   background-color: #121212;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
 }
 
 *,
@@ -24,6 +32,8 @@ a {
 img {
   display: block;
   max-width: 100%;
+
+  -webkit-user-drag: none;
 }
 
 :root {

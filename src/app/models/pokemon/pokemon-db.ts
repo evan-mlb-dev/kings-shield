@@ -10,6 +10,7 @@ import {
   PokemonType,
   SpeciesEntry,
 } from '../../services/pokemon.models';
+import type { Stats } from '../../services/save-file-parser';
 
 import abilitiesJson from '../../data/abilities.json';
 import itemsJson from '../../data/items.json';
@@ -51,12 +52,16 @@ export class PokemonDb implements PokemonLookup {
 
     const species = new Map<number, SpeciesEntry>();
     for (const [id, s] of Object.entries(
-      speciesJson as Record<string, { name: string; types: string[]; abilityIds: number[] }>,
+      speciesJson as Record<
+        string,
+        { name: string; types: string[]; abilityIds: number[]; baseStats: Stats }
+      >,
     )) {
       species.set(Number(id), {
         name: s.name,
         types: s.types.map((name) => types.get(name)).filter((t): t is PokemonType => !!t),
         abilityIds: s.abilityIds,
+        baseStats: s.baseStats,
       });
     }
     this.species = species;

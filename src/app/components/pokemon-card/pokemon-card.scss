@@ -1,0 +1,249 @@
+:host {
+  display: block;
+  --type-1: #777;
+  --type-2: #777;
+}
+
+:host(:not(.mini)) {
+  height: 100%;
+}
+
+.shiny-star {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.8rem;
+  color: #ffd84d;
+  text-shadow: 0 0 4px rgb(0 0 0 / 60%);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 10px;
+  overflow: hidden;
+  font-size: 0.72rem;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--type-1) 35%, transparent), transparent 55%),
+    linear-gradient(315deg, color-mix(in srgb, var(--type-2) 25%, transparent), transparent 50%),
+    var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--type-1) 60%, #333);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--type-1) 90%, white);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 50%);
+  }
+
+  &.shiny {
+    border-color: #ffd84d;
+    box-shadow: 0 0 10px rgb(255 216 77 / 35%);
+  }
+}
+
+.card-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.sprite-wrap {
+  position: relative;
+  flex-shrink: 0;
+  background: radial-gradient(circle, rgb(255 255 255 / 12%) 0, transparent 70%);
+  border-radius: 50%;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.species {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.level {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 1px 6px;
+  margin-left: auto;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  background: rgb(0 0 0 / 45%);
+  border-radius: 8px;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgb(0 0 0 / 25%);
+  border-radius: 8px;
+
+  dt {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  dd {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .item {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    margin: -6px 0;
+  }
+}
+
+.moves-section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-title {
+  font-size: 0.6rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.moves {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  list-style: none;
+}
+
+.move {
+  --move-color: #777;
+
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--move-color) 45%, rgb(0 0 0 / 30%)),
+    color-mix(in srgb, var(--move-color) 15%, rgb(0 0 0 / 30%))
+  );
+  border-left: 3px solid var(--move-color);
+  border-radius: 5px;
+
+  app-move-category-icon {
+    flex-shrink: 0;
+  }
+
+  &.empty {
+    justify-content: center;
+    font-size: 0.6rem;
+    background: rgb(0 0 0 / 20%);
+    border-left-color: rgb(255 255 255 / 10%);
+    opacity: 0.4;
+  }
+}
+
+.move-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.move-power {
+  flex-shrink: 0;
+  min-width: 22px;
+  font-size: 0.6rem;
+  text-align: right;
+  opacity: 0.75;
+}
+
+.muted {
+  opacity: 0.5;
+}
+
+.mini-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 76px;
+  padding: 4px 2px 3px;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--type-1) 40%, transparent), transparent 70%),
+    var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--type-1) 50%, #333);
+  border-radius: 10px;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 0 0 2px var(--primary-color);
+    transform: translateY(-2px);
+  }
+
+  &.shiny {
+    border-color: #ffd84d;
+  }
+
+  app-pokemon-sprite ::ng-deep img {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+.mini-item {
+  position: absolute;
+  top: 34px;
+  right: 2px;
+
+  ::ng-deep img {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.mini-name {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.6rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

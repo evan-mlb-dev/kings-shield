@@ -85,6 +85,7 @@ export interface SpeciesEntry {
   types: readonly PokemonType[];
   /** [hidden, ability 1, ability 2], 0 = empty slot */
   abilityIds: readonly number[];
+  baseStats: Readonly<Stats>;
 }
 
 export interface PokemonLookup {
@@ -96,6 +97,8 @@ export interface PokemonLookup {
 }
 
 export class Pokemon {
+  readonly baseStatTotal: number;
+
   constructor(
     public readonly speciesId: number,
     public readonly speciesName: string,
@@ -118,11 +121,16 @@ export class Pokemon {
     public readonly box: number | null,
     /** Party position (1-6) or box position (1-30) */
     public readonly slot: number,
+    /** Species base stats; null when the species is unknown */
+    public readonly baseStats: Readonly<Stats> | null = null,
   ) {
     Object.freeze(this.types);
     Object.freeze(this.moves);
     Object.freeze(this.ivs);
     Object.freeze(this.evs);
+    this.baseStatTotal = baseStats
+      ? baseStats.hp + baseStats.atk + baseStats.def + baseStats.spa + baseStats.spd + baseStats.spe
+      : 0;
     Object.freeze(this);
   }
 
@@ -149,6 +157,7 @@ export class Pokemon {
       parsed.location,
       parsed.box ?? null,
       parsed.slot,
+      species?.baseStats ?? null,
     );
   }
 

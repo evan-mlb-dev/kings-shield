@@ -1,45 +1,198 @@
-<div class="team-builder-container">TEAM BUILDER</div>
+<section class="team-builder" cdkDropListGroup>
+  <div class="panel">
+    <header class="panel-head">
+      <h2>
+        Team <span class="count">{{ team().length }}/{{ maxTeamSize }}</span>
+      </h2>
+      @if (gameState.pkmnData()) {
+        <div class="team-actions">
+          <button
+            type="button"
+            class="ghost-button"
+            title="Send every team member back to the PC"
+            [disabled]="team().length === 0"
+            (click)="gameState.clearTeam()"
+          >
+            Send all to PC
+          </button>
+          <button
+            type="button"
+            class="ghost-button"
+            title="Put the save's original team back"
+            (click)="gameState.resetTeam()"
+          >
+            Reset
+          </button>
+        </div>
+      }
+    </header>
 
-<div class="team">
-  @for (mon of team(); track mon.slot) {
-    <div class="card">
-      <app-pokemon-sprite [speciesId]="mon.speciesId" [name]="mon.speciesName" />
-      <h3>
-        #{{ mon.slot }} {{ mon.nickname }}
-        @if (mon.nickname !== mon.speciesName) {
-          <small>({{ mon.speciesName }})</small>
-        }
-      </h3>
-
-      <p class="types">
-        @for (t of mon.types; track t.id) {
-          <app-type-icon [name]="t.name" />
-        }
-      </p>
-
-      <p>Lv {{ mon.level ?? '?' }} · {{ mon.nature?.name }}</p>
-      <p>Ability : {{ mon.ability?.name ?? '?' }}</p>
-      <p class="item">
-        Item :
-        @if (mon.heldItem; as item) {
-          <app-item-icon [id]="item.id" [name]="item.name" />
-          {{ item.name }}
-        } @else {
-          none
-        }
-      </p>
-
-      <ul>
-        @for (m of mon.moves; track m.id) {
-          <li>
-            <app-type-icon [name]="m.type.name" />
-            <app-move-category-icon [category]="m.category" />
-            {{ m.name }}
-          </li>
-        }
-      </ul>
+    <div class="team">
+      @for (slot of slots(); track slot?.key ?? 'empty-' + $index; let i = $index) {
+        <div
+          class="team-slot"
+          [class.empty]="!slot"
+          cdkDropList
+          cdkDropListSortingDisabled
+          [cdkDropListData]="i"
+          (cdkDropListDropped)="dropOnSlot($event)"
+        >
+          @if (slot) {
+            <div class="team-card" cdkDrag [cdkDragData]="slot">
+              <app-pokemon-card [pokemon]="slot.mon" />
+              <button
+                type="button"
+                class="remove-button"
+                title="Send back to the PC"
+                (click)="remove(slot)"
+              >
+                ×
+              </button>
+              <div class="drag-placeholder" *cdkDragPlaceholder></div>
+            </div>
+          } @else {
+            <span class="empty-label">Drop a Pokémon here</span>
+          }
+        </div>
+      }
     </div>
-  } @empty {
-    <p>No Pokémon loaded.</p>
-  }
-</div>
+  </div>
+
+  <div class="panel">
+    <header class="panel-head pc-head">
+      <h2>
+        PC <span class="count">{{ visiblePc().length }}</span>
+      </h2>
+      <div class="filters">
+        <span class="filter-label">Type</span>
+        <div class="type-filters" role="group" aria-label="Filter by type">
+          @for (name of typeNames; track name) {
+            <button
+              type="button"
+              class="type-chip"
+              [class.selected]="isTypeSelected(name)"
+              [style.--chip-color]="typeColor(name)"
+              [attr.aria-pressed]="isTypeSelected(name)"
+              (click)="toggleType(name)"
+            >
+              <app-type-icon [name]="name" />
+            </button>
+          }
+        </div>
+
+        <span class="filter-label">Effective vs</span>
+        <div class="type-filters" role="group" aria-label="Effective against a type">
+          @for (name of typeNames; track name) {
+            <button
+              type="button"
+              class="type-chip"
+              [class.selected]="effectiveAgainst() === name"
+              [style.--chip-color]="typeColor(name)"
+              [attr.aria-pressed]="effectiveAgainst() === name"
+              [title]="'Pokémon effective against ' + name"
+              (click)="toggleEffectiveAgainst(name)"
+            >
+              <app-type-icon [name]="name" />
+            </button>
+          }
+        </div>
+
+        <span class="filter-label">Sort</span>
+        <div class="sort" role="group" aria-label="Sort by base stat">
+          @for (option of sortOptions; track option.key) {
+            <button
+              type="button"
+              class="sort-button"
+              [class.selected]="sortKey() === option.key"
+              [attr.aria-pressed]="sortKey() === option.key"
+              (click)="setSort(option.key)"
+            >
+              {{ option.label }}
+              <span class="sort-dir" aria-hidden="true">{{
+                sortKey() === option.key ? (sortDescending() ? '↓' : '↑') : ''
+              }}</span>
+            </button>
+          }
+          <button
+            type="button"
+            class="clear-button"
+            [class.visible]="hasFilters()"
+            [disabled]="!hasFilters()"
+            [attr.aria-hidden]="!hasFilters()"
+            (click)="clearFilters()"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="pc-box">
+      <div class="pc-toolbar">
+        <label class="search-field">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2" />
+            <path
+              d="M16 16l4.5 4.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+          <input
+            class="search"
+            type="search"
+            placeholder="Search a Pokémon…"
+            aria-label="Search a Pokémon"
+            [value]="search()"
+            (input)="search.set($any($event.target).value)"
+          />
+        </label>
+      </div>
+
+      <div
+        class="pc"
+        cdkDropList
+        cdkDropListOrientation="mixed"
+        cdkDropListSortingDisabled
+        [cdkDropListData]="visiblePc()"
+        (cdkDropListDropped)="dropOnPc($event)"
+      >
+        @for (entry of visiblePc(); track entry.key) {
+          <div class="pc-slot" cdkDrag [cdkDragData]="entry" (dblclick)="add(entry)">
+            <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
+            @if (matchupBadges().get(entry.key); as badges) {
+              <ul class="matchup-badges">
+                @for (badge of badges; track badge.label) {
+                  <li class="matchup-badge" [class]="badge.kind" [title]="badge.title">
+                    {{ badge.label }}
+                  </li>
+                }
+              </ul>
+            }
+            @if (sortKey(); as key) {
+              @let value = statOf(entry.mon, key);
+              <span
+                class="stat-badge"
+                [class.excellent]="isExcellentStat(value, key)"
+                [style.--stat-hue]="statHue(value, key)"
+                >{{ value }}</span
+              >
+            }
+            <div class="drag-placeholder" *cdkDragPlaceholder></div>
+          </div>
+        } @empty {
+          <p class="empty-message">
+            @if (!gameState.pkmnData()) {
+              Load a save file to see your Pokémon.
+            } @else if (hasFilters()) {
+              No Pokémon matches these filters.
+            } @else {
+              The PC is empty.
+            }
+          </p>
+        }
+      </div>
+    </div>
+  </div>
+</section>

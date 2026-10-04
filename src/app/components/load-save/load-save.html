@@ -1,11 +1,17 @@
 <div class="load-save-container">
-  @if (gameState.saveName()) {
-    <div class="save-file-name">
-      {{ gameState.saveName() }}
-    </div>
-  } @else {
-    <div class="save-file-name">No save file.</div>
-  }
+  <div class="save-file" [class.empty]="!gameState.saveName()" [title]="gameState.saveName() ?? ''">
+    <svg class="save-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M6 3h9l3 3v15H6z M9 3v5h6V3"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span class="save-file-name">{{ gameState.saveName() ?? 'No save file' }}</span>
+  </div>
+
   <button class="load-save-button button-style-1" (click)="fileInput.click()">Load Save</button>
 
   <input

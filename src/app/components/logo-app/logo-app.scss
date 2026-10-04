@@ -1,31 +1,30 @@
-.logo-app-container {
-  position: relative;
-  top: -16px;
+.logo-link {
   display: flex;
-  width: 250;
-  padding-left: 5px;
+  gap: 10px;
+  align-items: center;
+  transition: filter 0.2s ease;
 
-  .logo-app {
-    width: 90px;
+  &:hover {
+    filter: drop-shadow(0 0 8px rgb(240 213 140 / 45%));
   }
+}
 
-  .titlte-app {
-    position: absolute;
-    top: 28px;
-    right: -110px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    font-family: 'Cinzel Decorative', serif;
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1.05;
-    color: var(--primary-color);
-    color: transparent;
-    letter-spacing: 0.02em;
-    background: var(--gold-gradient);
-    background-clip: text;
-    text-rendering: optimizelegibility;
-    -webkit-font-smoothing: antialiased;
-  }
+.logo-app {
+  width: auto;
+  height: 58px;
+}
+
+.title-app {
+  display: flex;
+  flex-direction: column;
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: transparent;
+  letter-spacing: 0.02em;
+  background: var(--gold-gradient);
+  background-clip: text;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
 }

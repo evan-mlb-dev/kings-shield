@@ -1,0 +1,55 @@
+.main-nav {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgb(0 0 0 / 25%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 12px;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  border-radius: 9px;
+  opacity: 0.65;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    background: rgb(255 255 255 / 6%);
+    opacity: 1;
+  }
+
+  &.active {
+    background: rgb(135 116 245 / 25%);
+    opacity: 1;
+
+    &::after {
+      position: absolute;
+      right: 16px;
+      bottom: 3px;
+      left: 16px;
+      height: 2px;
+      content: '';
+      background: var(--gold-gradient);
+      border-radius: 2px;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.tab-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}

@@ -12,7 +12,7 @@ export class LoadSave {
   // services
   private saveFileParser = inject(SaveFileParser);
   // states
-  private gameState = inject(GameStateService);
+  protected gameState = inject(GameStateService);
 
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
@@ -31,7 +31,7 @@ export class LoadSave {
             this.gameState.setPkmnData(parseResult);
           }
         } catch (error) {
-          console.error('Erreur lors du traitement du fichier .sav :', error);
+          console.error('Error while processing the .sav file:', error);
         }
       };
 
