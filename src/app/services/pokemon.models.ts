@@ -1,3 +1,4 @@
+import { type GrowthRate, levelFromExperience } from '../shared/experience';
 import type { ParsedPokemon, Stats } from './save-file-parser';
 
 export class PokemonType {
@@ -86,6 +87,9 @@ export interface SpeciesEntry {
   /** [hidden, ability 1, ability 2], 0 = empty slot */
   abilityIds: readonly number[];
   baseStats: Readonly<Stats>;
+  growthRate: GrowthRate | null;
+  tier: string | null;
+  smogonSlug: string | null;
 }
 
 export interface PokemonLookup {
@@ -98,6 +102,12 @@ export interface PokemonLookup {
 
 export class Pokemon {
   readonly baseStatTotal: number;
+
+  get smogonUrl(): string | null {
+    return this.smogonSlug
+      ? `https://www.smogon.com/dex/sv/pokemon/${this.smogonSlug}/national-dex/`
+      : null;
+  }
 
   constructor(
     public readonly speciesId: number,
@@ -123,6 +133,8 @@ export class Pokemon {
     public readonly slot: number,
     /** Species base stats; null when the species is unknown */
     public readonly baseStats: Readonly<Stats> | null = null,
+    public readonly tier: string | null = null,
+    public readonly smogonSlug: string | null = null,
   ) {
     Object.freeze(this.types);
     Object.freeze(this.moves);
@@ -147,7 +159,8 @@ export class Pokemon {
       Pokemon.resolveAbility(species?.abilityIds ?? [], parsed.abilitySlot, lookup.abilities),
       lookup.items.get(parsed.heldItem) ?? null,
       lookup.natures[parsed.personality % 25] ?? null,
-      parsed.level ?? null,
+      parsed.level ??
+        (species?.growthRate ? levelFromExperience(species.growthRate, parsed.experience) : null),
       parsed.experience,
       parsed.friendship,
       { ...parsed.ivs },
@@ -158,6 +171,8 @@ export class Pokemon {
       parsed.box ?? null,
       parsed.slot,
       species?.baseStats ?? null,
+      species?.tier ?? null,
+      species?.smogonSlug ?? null,
     );
   }
 

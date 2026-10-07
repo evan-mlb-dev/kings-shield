@@ -48,6 +48,7 @@
 }
 
 .card-head {
+  position: relative;
   display: flex;
   gap: 6px;
   align-items: center;
@@ -55,19 +56,70 @@
 
 .sprite-wrap {
   position: relative;
+
+  display: flex;
   flex-shrink: 0;
+  width: 64px;
+  height: 64px;
   background: radial-gradient(circle, rgb(255 255 255 / 12%) 0, transparent 70%);
   border-radius: 50%;
+
+  app-pokemon-sprite {
+    animation: sprite-idle 2.4s ease-in-out infinite;
+    animation-delay: var(--idle-delay, 0s);
+  }
+}
+
+.card:hover .sprite-wrap app-pokemon-sprite {
+  animation: sprite-hop 0.45s ease-out;
+}
+
+@keyframes sprite-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes sprite-hop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  35% {
+    transform: translateY(-8px) scale(1.04);
+  }
+
+  70% {
+    transform: translateY(0) scale(0.98, 1.02);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprite-wrap app-pokemon-sprite,
+  .card:hover .sprite-wrap app-pokemon-sprite {
+    animation: none;
+  }
 }
 
 .identity {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
 .name {
+  padding-right: 42px;
   overflow: hidden;
   font-size: 0.9rem;
   text-overflow: ellipsis;
@@ -81,16 +133,28 @@
 
 .types {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
   gap: 3px;
-  margin-top: 2px;
+  align-items: center;
+  width: 100%;
+  margin-top: 3px;
+
+  app-type-icon {
+    flex: 0 0 calc(50% - 1.5px);
+    min-width: 0;
+  }
+
+  app-type-icon ::ng-deep img {
+    width: 100%;
+    height: auto;
+  }
 }
 
 .level {
-  flex-shrink: 0;
-  align-self: flex-start;
+  position: absolute;
+  top: 0;
+  right: 0;
   padding: 1px 6px;
-  margin-left: auto;
   font-size: 0.65rem;
   white-space: nowrap;
   background: rgb(0 0 0 / 45%);
@@ -123,7 +187,8 @@
     display: flex;
     gap: 2px;
     align-items: center;
-    margin: -6px 0;
+    height: 18px;
+    overflow: visible;
   }
 }
 
@@ -132,6 +197,47 @@
   flex: 1;
   flex-direction: column;
   gap: 4px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.smogon-link {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 6px;
+  opacity: 0.75;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  &:hover {
+    background: rgb(135 116 245 / 30%);
+    border-color: var(--primary-color);
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+    opacity: 1;
+  }
 }
 
 .section-title {
@@ -246,4 +352,47 @@
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.card.skeleton {
+  position: relative;
+  background: transparent;
+  border: 1px dashed rgb(255 255 255 / 25%);
+  box-shadow: none;
+
+  &:hover {
+    border-color: rgb(255 255 255 / 25%);
+    box-shadow: none;
+  }
+}
+
+.skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  visibility: hidden;
+}
+
+.sprite-box {
+  width: 64px;
+  height: 64px;
+}
+
+.item-box {
+  display: block;
+  width: 30px;
+  height: 18px;
+}
+
+.skeleton-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  font-size: 0.7rem;
+  text-align: center;
+  opacity: 0.5;
 }

@@ -22,7 +22,32 @@ interface Entry {
 
 type DropData = number | Entry[];
 
-export type SortKey = 'total' | 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
+export type SortKey = 'tier' | 'total' | 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
+
+const TIER_ORDER = [
+  'AG',
+  'Uber',
+  'OU',
+  'UUBL',
+  'UU',
+  'RUBL',
+  'RU',
+  'NUBL',
+  'NU',
+  'PUBL',
+  'PU',
+  'ZUBL',
+  'ZU',
+  'NFE',
+  'LC',
+] as const;
+
+function tierRank(tier: string | null): number {
+  const index = tier ? TIER_ORDER.indexOf(tier as (typeof TIER_ORDER)[number]) : -1;
+  return index < 0 ? 0 : TIER_ORDER.length - index;
+}
+
+const EXCELLENT_TIER_RANK = tierRank('OU');
 
 const STAT_RED_UNTIL = 60;
 const STAT_CYAN_FROM = 130;
@@ -71,6 +96,16 @@ function matchupScore(m: Matchup | undefined): number {
   return offense + defense;
 }
 
+const PC_COLLAPSED_KEY = 'king_shield_pc_collapsed';
+
+function readPcCollapsed(): boolean {
+  try {
+    return localStorage.getItem(PC_COLLAPSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 @Component({
   selector: 'app-team-builder',
   imports: [PokemonCard, TypeIcon, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragPlaceholder],
@@ -94,6 +129,17 @@ export class TeamBuilder {
     Array.from({ length: MAX_TEAM_SIZE }, (_, i) => this.team()[i] ?? null),
   );
 
+  protected readonly pcCollapsed = signal(readPcCollapsed());
+
+  protected togglePc(): void {
+    this.pcCollapsed.update((collapsed) => !collapsed);
+    try {
+      localStorage.setItem(PC_COLLAPSED_KEY, String(this.pcCollapsed()));
+    } catch {
+      // Storage unavailable: the choice only lasts for this visit
+    }
+  }
+
   protected readonly search = signal('');
 
   /** Selected types: a Pokémon must have all of them (max 2) */
@@ -103,6 +149,7 @@ export class TeamBuilder {
   protected readonly sortDescending = signal(true);
 
   protected readonly sortOptions: readonly { key: SortKey; label: string }[] = [
+    { key: 'tier', label: 'Tier' },
     { key: 'total', label: 'Total' },
     { key: 'hp', label: 'HP' },
     { key: 'atk', label: 'Atk' },
@@ -208,17 +255,26 @@ export class TeamBuilder {
     return list;
   });
 
-  /** Stat shown on each PC tile while sorting */
   protected statOf(mon: Pokemon, key: SortKey): number {
+    if (key === 'tier') return tierRank(mon.tier);
     if (key === 'total') return mon.baseStatTotal;
     return mon.baseStats?.[key] ?? 0;
   }
 
+  /** Text of the badge shown on each PC tile while sorting */
+  protected badgeLabel(mon: Pokemon, key: SortKey): string {
+    return key === 'tier' ? (mon.tier ?? '—') : String(this.statOf(mon, key));
+  }
+
   protected isExcellentStat(value: number, key: SortKey): boolean {
+    if (key === 'tier') return value >= EXCELLENT_TIER_RANK;
     return value >= (key === 'total' ? TOTAL_EXCELLENT_FROM : STAT_EXCELLENT_FROM);
   }
 
   protected statHue(value: number, key: SortKey): number {
+    if (key === 'tier') {
+      return Math.round(Math.min(1, Math.max(0, (value - 1) / (TIER_ORDER.length - 4))) * 180);
+    }
     const perStat = key === 'total' ? value / 6 : value;
     const ratio = (perStat - STAT_RED_UNTIL) / (STAT_CYAN_FROM - STAT_RED_UNTIL);
     return Math.round(Math.min(1, Math.max(0, ratio)) * 180);
@@ -264,10 +320,20 @@ export class TeamBuilder {
     this.sortDescending.set(true);
   }
 
+  protected readonly draggingTeamMember = signal(false);
+
   protected dropOnSlot(event: CdkDragDrop<number, DropData, Entry>): void {
     const target = event.container.data;
     const source = event.previousContainer.data;
-    if (event.container === event.previousContainer) return;
+    if (event.container === event.previousContainer) {
+      if (!event.isPointerOverContainer) this.gameState.removeFromTeam(event.item.data.parsed);
+      return;
+    }
+
+    if (!event.isPointerOverContainer) {
+      if (typeof source === 'number') this.gameState.removeFromTeam(event.item.data.parsed);
+      return;
+    }
 
     if (typeof source === 'number') {
       this.gameState.swapInTeam(source, target);

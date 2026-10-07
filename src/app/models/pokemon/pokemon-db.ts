@@ -17,7 +17,10 @@ import itemsJson from '../../data/items.json';
 import movesJson from '../../data/moves.json';
 import naturesJson from '../../data/natures.json';
 import speciesJson from '../../data/species.json';
+import growthRatesJson from '../../data/growth-rates.json';
+import smogonJson from '../../data/smogon.json';
 import typesJson from '../../data/types.json';
+import type { GrowthRate } from '../../shared/experience';
 
 @Injectable({
   providedIn: 'root',
@@ -50,11 +53,13 @@ export class PokemonDb implements PokemonLookup {
         ),
     );
 
+    const growthRates = growthRatesJson as Record<string, string>;
+    const smogon = smogonJson as Record<string, { tier: string; slug: string }>;
     const species = new Map<number, SpeciesEntry>();
     for (const [id, s] of Object.entries(
       speciesJson as Record<
         string,
-        { name: string; types: string[]; abilityIds: number[]; baseStats: Stats }
+        { dex: number; name: string; types: string[]; abilityIds: number[]; baseStats: Stats }
       >,
     )) {
       species.set(Number(id), {
@@ -62,6 +67,9 @@ export class PokemonDb implements PokemonLookup {
         types: s.types.map((name) => types.get(name)).filter((t): t is PokemonType => !!t),
         abilityIds: s.abilityIds,
         baseStats: s.baseStats,
+        growthRate: (growthRates[s.dex] as GrowthRate | undefined) ?? null,
+        tier: smogon[id]?.tier ?? null,
+        smogonSlug: smogon[id]?.slug ?? null,
       });
     }
     this.species = species;

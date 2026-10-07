@@ -12,7 +12,24 @@
     <span class="save-file-name">{{ gameState.saveName() ?? 'No save file' }}</span>
   </div>
 
-  <button class="load-save-button button-style-1" (click)="fileInput.click()">Load Save</button>
+  <button
+    type="button"
+    class="load-save-button"
+    [title]="gameState.saveName() ? 'Load another .sav file' : 'Load a Radical Red .sav file'"
+    (click)="fileInput.click()"
+  >
+    <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span>{{ gameState.saveName() ? 'Load Save' : 'Load Save' }}</span>
+  </button>
 
   <input
     type="file"

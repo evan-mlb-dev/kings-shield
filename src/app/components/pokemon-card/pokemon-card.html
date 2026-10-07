@@ -1,6 +1,38 @@
 @let mon = pokemon();
 
-@if (variant() === 'mini') {
+@if (!mon) {
+  <article class="card skeleton">
+    <div class="skeleton-content" aria-hidden="true">
+      <header class="card-head">
+        <div class="sprite-wrap"><div class="sprite-box"></div></div>
+        <div class="identity">
+          <h3 class="name">&nbsp;</h3>
+          <div class="types"></div>
+        </div>
+      </header>
+      <dl class="details">
+        <dt>Ability</dt>
+        <dd>&nbsp;</dd>
+        <dt>Nature</dt>
+        <dd>&nbsp;</dd>
+        <dt>Item</dt>
+        <dd class="item"><span class="item-box"></span></dd>
+      </dl>
+      <section class="moves-section">
+        <div class="section-head">
+          <h4 class="section-title">Moves</h4>
+          <span class="smogon-link">Smogon</span>
+        </div>
+        <ul class="moves">
+          @for (i of emptyMoveRows(); track i) {
+            <li class="move empty">—</li>
+          }
+        </ul>
+      </section>
+    </div>
+    <span class="skeleton-label">Drop a Pokémon here</span>
+  </article>
+} @else if (variant() === 'mini') {
   <div
     class="mini-card"
     [class.shiny]="mon.isShiny"
@@ -59,7 +91,33 @@
     </dl>
 
     <section class="moves-section">
-      <h4 class="section-title">Moves</h4>
+      <div class="section-head">
+        <h4 class="section-title">Moves</h4>
+        @if (mon.smogonUrl; as url) {
+          <a
+            class="smogon-link"
+            [href]="url"
+            target="_blank"
+            rel="noopener noreferrer"
+            [title]="'Smogon builds for ' + mon.speciesName"
+            [attr.aria-label]="'Smogon builds for ' + mon.speciesName + ' (opens in a new tab)'"
+            (mousedown)="$event.stopPropagation()"
+            (dblclick)="$event.stopPropagation()"
+          >
+            Smogon
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </a>
+        }
+      </div>
       <ul class="moves">
         @for (m of mon.moves; track m.id) {
           <li
