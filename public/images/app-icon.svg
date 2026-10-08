@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="King's Shield">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2252" />
+      <stop offset="1" stop-color="#16112b" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.45" r="0.5">
+      <stop offset="0" stop-color="#8774f5" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#8774f5" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0d58c" />
+      <stop offset="1" stop-color="#c99a3e" />
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#eef0f7" />
+      <stop offset="0.5" stop-color="#c3c8d8" />
+      <stop offset="1" stop-color="#7c8299" />
+    </linearGradient>
+    <!-- Shield halves: defense (left, purple) / offense (right, dark) -->
+    <linearGradient id="shield-left" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5b46c9" />
+      <stop offset="1" stop-color="#2e2370" />
+    </linearGradient>
+    <linearGradient id="shield-right" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3350" />
+      <stop offset="1" stop-color="#1d1930" />
+    </linearGradient>
+    <radialGradient id="gem" cx="0.38" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#e2dbff" />
+      <stop offset="0.35" stop-color="#a08cff" />
+      <stop offset="1" stop-color="#4a33b8" />
+    </radialGradient>
+    <clipPath id="shield-shape">
+      <path d="M18 16H46V31C46 41 40 48 32 52C24 48 18 41 18 31Z" />
+    </clipPath>
+  </defs>
+
+  <!-- App tile -->
+  <rect width="64" height="64" rx="14" fill="url(#bg)" />
+  <rect width="64" height="64" rx="14" fill="url(#glow)" />
+
+  <!-- Sword (offense), diagonal behind the shield: tip top-right, hilt bottom-left -->
+  <g transform="rotate(35 32 32)">
+    <path d="M32 -1L35.5 5V40H28.5V5Z" fill="url(#blade)" stroke="#4b4f63" stroke-width="0.8" />
+    <path d="M32 2V39" stroke="#8f95ab" stroke-width="0.9" />
+    <rect x="21" y="40" width="22" height="4" rx="2" fill="url(#gold)" stroke="#7a5a1c" stroke-width="0.8" />
+    <rect x="30" y="44" width="4" height="10" rx="1.2" fill="#3b2a6b" stroke="#1d1438" stroke-width="0.8" />
+    <circle cx="32" cy="57" r="3" fill="url(#gold)" stroke="#7a5a1c" stroke-width="0.8" />
+  </g>
+
+  <!-- Shield (defense) -->
+  <g clip-path="url(#shield-shape)">
+    <rect x="18" y="16" width="14" height="36" fill="url(#shield-left)" />
+    <rect x="32" y="16" width="14" height="36" fill="url(#shield-right)" />
+    <path d="M18 16L46 16L46 20L18 20Z" fill="#ffffff" fill-opacity="0.08" />
+  </g>
+  <path
+    d="M18 16H46V31C46 41 40 48 32 52C24 48 18 41 18 31Z"
+    fill="none"
+    stroke="url(#gold)"
+    stroke-width="2.4"
+    stroke-linejoin="round"
+  />
+  <path d="M32 18V49" stroke="url(#gold)" stroke-width="1.2" stroke-opacity="0.7" />
+
+  <!-- Central emblem: gold diamond + gem -->
+  <path d="M32 24L39 31L32 38L25 31Z" fill="url(#gold)" stroke="#7a5a1c" stroke-width="0.8" />
+  <circle cx="32" cy="31" r="3.6" fill="url(#gem)" stroke="#2a1d6b" stroke-width="0.6" />
+  <circle cx="30.9" cy="29.8" r="1" fill="#ffffff" fill-opacity="0.85" />
+</svg>

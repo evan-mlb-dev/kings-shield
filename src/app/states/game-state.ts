@@ -27,9 +27,18 @@ export class GameStateService {
     return data ? [...data.team, ...data.pc] : [];
   });
 
+  private readonly _faintedKeys = signal<ReadonlySet<string>>(new Set());
+
+  /** Fainted Pokémon of the current save */
+  readonly fainted = computed<ParsedPokemon[]>(() => {
+    const keys = this._faintedKeys();
+    return this.all().filter((p) => keys.has(pokemonKey(p)));
+  });
+
   readonly pc = computed<ParsedPokemon[]>(() => {
     const inTeam = new Set(this._team().map(pokemonKey));
-    return this.all().filter((p) => !inTeam.has(pokemonKey(p)));
+    const fainted = this._faintedKeys();
+    return this.all().filter((p) => !inTeam.has(pokemonKey(p)) && !fainted.has(pokemonKey(p)));
   });
 
   readonly boxNames = computed<string[]>(() => this.pkmnData()?.boxNames ?? []);
@@ -37,7 +46,7 @@ export class GameStateService {
 
   constructor() {
     this.hydrate();
-    effect(() => this.persist(this.saveName(), this.pkmnData(), this._team()));
+    effect(() => this.persist(this.saveName(), this.pkmnData(), this._team(), this._faintedKeys()));
   }
 
   setSaveName(name: string): void {
@@ -109,6 +118,29 @@ export class GameStateService {
     this._team.set([]);
   }
 
+  setTeam(team: readonly ParsedPokemon[]): void {
+    this._team.set(team.slice(0, MAX_TEAM_SIZE));
+  }
+
+  faint(mon: ParsedPokemon): void {
+    const key = pokemonKey(mon);
+    this.removeFromTeam(mon);
+    this._faintedKeys.update((keys) => new Set(keys).add(key));
+  }
+
+  revive(mon: ParsedPokemon): void {
+    const key = pokemonKey(mon);
+    this._faintedKeys.update((keys) => {
+      const next = new Set(keys);
+      next.delete(key);
+      return next;
+    });
+  }
+
+  isFainted(mon: ParsedPokemon): boolean {
+    return this._faintedKeys().has(pokemonKey(mon));
+  }
+
   /** Puts the save's original party back. */
   resetTeam(): void {
     this._team.set(this.pkmnData()?.team.slice(0, MAX_TEAM_SIZE) ?? []);
@@ -118,6 +150,7 @@ export class GameStateService {
     this.saveName.set(null);
     this.pkmnData.set(null);
     this._team.set([]);
+    this._faintedKeys.set(new Set());
     try {
       localStorage.removeItem(CACHE_KEY);
     } catch (error) {
@@ -147,12 +180,18 @@ export class GameStateService {
       this.saveName.set(cached.saveName);
       this.pkmnData.set(data);
       this._team.set(team.slice(0, MAX_TEAM_SIZE));
+      this._faintedKeys.set(new Set((cached.faintedKeys as string[] | undefined) ?? []));
     } catch (error) {
       console.error('Failed to restore the cached save, starting empty:', error);
     }
   }
 
-  private persist(saveName: string | null, data: ParsedSave | null, team: ParsedPokemon[]): void {
+  private persist(
+    saveName: string | null,
+    data: ParsedSave | null,
+    team: ParsedPokemon[],
+    faintedKeys: ReadonlySet<string>,
+  ): void {
     try {
       if (!saveName || !data) return;
       localStorage.setItem(
@@ -162,6 +201,7 @@ export class GameStateService {
           saveName,
           data,
           teamKeys: team.map(pokemonKey),
+          faintedKeys: [...faintedKeys],
         }),
       );
     } catch (error) {

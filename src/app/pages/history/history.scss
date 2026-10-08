@@ -1,0 +1,139 @@
+.history-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 1440px;
+  padding: 24px 20px 40px;
+  margin: 0 auto;
+}
+
+.page-head {
+  text-align: center;
+
+  h1 {
+    margin-bottom: 6px;
+    font-size: 1.5rem;
+  }
+}
+
+.subtitle,
+.empty {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.empty {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.saved-team {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgb(255 255 255 / 3%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 16px;
+}
+
+.team-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+}
+
+.team-name {
+  font-size: 1.05rem;
+}
+
+.team-meta {
+  font-size: 0.7rem;
+  opacity: 0.55;
+}
+
+.rename-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scores {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.score {
+  padding: 3px 10px;
+  font-size: 0.7rem;
+  color: hsl(var(--hue) 80% 72%);
+  background: hsl(var(--hue) 60% 40% / 18%);
+  border: 1px solid hsl(var(--hue) 70% 55% / 60%);
+  border-radius: 999px;
+}
+
+.members {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+
+  @media (width <= 900px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.member {
+  --type-icon-size: 16px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  padding: 6px;
+  background: rgb(0 0 0 / 25%);
+  border-radius: 10px;
+}
+
+.member-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-types {
+  display: flex;
+  gap: 3px;
+}
+
+.team-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.ghost-button {
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: white;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 8px;
+
+  &:hover {
+    border-color: var(--primary-color);
+  }
+
+  &.danger:hover,
+  &.danger.confirm {
+    color: #fff;
+    background: #c22e28;
+    border-color: #c22e28;
+  }
+}

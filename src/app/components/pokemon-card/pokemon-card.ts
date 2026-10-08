@@ -32,7 +32,7 @@ export class PokemonCard {
   protected readonly typeColor = typeColor;
 
   protected readonly idleDelay = computed(
-    () => `${-(((this.pokemon()?.speciesId ?? 0) * 0.37) % 2.4)}s`,
+    () => `${-(((this.pokemon()?.speciesId ?? 0) * 0.37) % 3)}s`,
   );
 
   protected readonly emptyMoveRows = computed(() =>

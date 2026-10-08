@@ -10,25 +10,57 @@
         }
       </p>
       @if (gameState.pkmnData()) {
-        <div class="team-actions">
-          <button
-            type="button"
-            class="ghost-button"
-            title="Send every team member back to the PC"
-            [disabled]="team().length === 0"
-            (click)="gameState.clearTeam()"
-          >
-            Send all to PC
-          </button>
-          <button
-            type="button"
-            class="ghost-button"
-            title="Put the save's original team back"
-            (click)="gameState.resetTeam()"
-          >
-            Reset
-          </button>
-        </div>
+        @if (naming()) {
+          <form class="save-form" (submit)="$event.preventDefault(); confirmSaving()">
+            <input
+              class="text-input"
+              type="text"
+              maxlength="40"
+              placeholder="Team name"
+              aria-label="Team name"
+              [value]="teamName()"
+              (input)="teamName.set($any($event.target).value)"
+              (keydown.escape)="cancelSaving()"
+              #teamNameInput
+            />
+            <button type="submit" class="primary-button">Save</button>
+            <button type="button" class="ghost-button" (click)="cancelSaving()">Cancel</button>
+          </form>
+        } @else {
+          <div class="team-actions">
+            @if (justSaved(); as name) {
+              <span class="status-message" role="status">
+                “{{ name }}” saved · <a routerLink="/history">View history</a>
+              </span>
+            }
+            <button
+              type="button"
+              class="primary-button"
+              title="Save this team to the history"
+              [disabled]="team().length === 0"
+              (click)="startSaving()"
+            >
+              Save team
+            </button>
+            <button
+              type="button"
+              class="ghost-button"
+              title="Send every team member back to the PC"
+              [disabled]="team().length === 0"
+              (click)="gameState.clearTeam()"
+            >
+              Send all to PC
+            </button>
+            <button
+              type="button"
+              class="ghost-button"
+              title="Put the save's original team back"
+              (click)="gameState.resetTeam()"
+            >
+              Reset
+            </button>
+          </div>
+        }
       }
     </header>
 
@@ -50,7 +82,7 @@
               title="Double-click to send back to the PC"
               (dblclick)="remove(slot)"
               (cdkDragStarted)="draggingTeamMember.set(true)"
-              (cdkDragEnded)="draggingTeamMember.set(false)"
+              (cdkDragEnded)="draggingTeamMember.set(false); endDrag()"
             >
               <app-pokemon-card [pokemon]="slot.mon" />
               <button
@@ -71,7 +103,7 @@
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel pc-panel" #pcPanel>
     <header class="panel-head pc-head" [class.collapsed]="pcCollapsed()">
       <h2>
         <button
@@ -194,7 +226,13 @@
           (cdkDropListDropped)="dropOnPc($event)"
         >
           @for (entry of visiblePc(); track entry.key) {
-            <div class="pc-slot" cdkDrag [cdkDragData]="entry" (dblclick)="add(entry)">
+            <div
+              class="pc-slot"
+              cdkDrag
+              [cdkDragData]="entry"
+              (dblclick)="add(entry)"
+              (cdkDragEnded)="endDrag()"
+            >
               <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
               @if (matchupBadges().get(entry.key); as badges) {
                 <ul class="matchup-badges">
@@ -228,6 +266,85 @@
             </p>
           }
         </div>
+      </div>
+    }
+  </div>
+
+  <div class="panel fainted-panel">
+    <header
+      class="panel-head fainted-head"
+      [class.collapsed]="faintedCollapsed() && !faintedPeek()"
+      cdkDropList
+      [id]="faintedHeaderId"
+      cdkDropListSortingDisabled
+      [cdkDropListDisabled]="!faintedCollapsed()"
+      [cdkDropListData]="fainted()"
+      (cdkDropListEntered)="faintedPeek.set(true)"
+      (cdkDropListDropped)="dropOnFainted($event)"
+    >
+      <h2>
+        <button
+          type="button"
+          class="collapse-toggle"
+          [attr.aria-expanded]="!faintedCollapsed()"
+          aria-controls="fainted-list"
+          [title]="faintedCollapsed() ? 'Expand the fainted box' : 'Collapse the fainted box'"
+          (click)="toggleFainted()"
+        >
+          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 9l6 6 6-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Fainted <span class="count">{{ fainted().length }}</span>
+        </button>
+      </h2>
+    </header>
+
+    @if (faintedCollapsed() && faintedPeek()) {
+      <div class="fainted fainted-preview" aria-hidden="true">
+        @for (entry of fainted(); track entry.key) {
+          <div class="pc-slot fainted-slot">
+            <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
+          </div>
+        } @empty {
+          <p class="empty-message">No fainted Pokémon yet.</p>
+        }
+      </div>
+    }
+
+    @if (!faintedCollapsed()) {
+      <div
+        class="fainted"
+        cdkDropList
+        [id]="faintedListId"
+        cdkDropListOrientation="mixed"
+        cdkDropListSortingDisabled
+        [cdkDropListData]="fainted()"
+        (cdkDropListDropped)="dropOnFainted($event)"
+      >
+        @for (entry of fainted(); track entry.key) {
+          <div
+            class="pc-slot fainted-slot"
+            cdkDrag
+            (cdkDragEnded)="endDrag()"
+            [cdkDragData]="entry"
+            title="Double-click to send back to the PC"
+            (dblclick)="revive(entry)"
+          >
+            <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
+            <div class="drag-placeholder" *cdkDragPlaceholder></div>
+          </div>
+        } @empty {
+          <p class="empty-message">
+            Drag a Pokémon here when it faints. Double-click it to send it back to the PC.
+          </p>
+        }
       </div>
     }
   </div>

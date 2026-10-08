@@ -1,0 +1,133 @@
+<section class="type-chart-page">
+  <header class="page-head">
+    <h1>Type Chart</h1>
+    <p class="subtitle">
+      Damage multiplier of an attacking type (row) against a defending type (column).
+    </p>
+  </header>
+
+  <div class="chart-wrap">
+    <table class="chart" (mouseleave)="hover(null, null)">
+      <thead>
+        <tr>
+          <th class="corner" scope="col">
+            <span class="corner-def">DEF →</span>
+            <span class="corner-atk">ATK ↓</span>
+          </th>
+          @for (t of types; track t.id; let c = $index) {
+            <th
+              scope="col"
+              class="col-head"
+              [class.highlight]="hoveredCol() === c"
+              [class.selected]="selected() === t.name"
+            >
+              <button
+                type="button"
+                class="head-button"
+                [attr.aria-pressed]="selected() === t.name"
+                [title]="'Show ' + t.name + ' match-ups'"
+                (click)="select(t.name)"
+              >
+                <app-type-icon [name]="t.name" variant="square" />
+              </button>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows; track row.attacker.id; let r = $index) {
+          <tr [class.highlight]="hoveredRow() === r">
+            <th scope="row" class="row-head" [class.selected]="selected() === row.attacker.name">
+              <button
+                type="button"
+                class="head-button"
+                [attr.aria-pressed]="selected() === row.attacker.name"
+                [title]="'Show ' + row.attacker.name + ' match-ups'"
+                (click)="select(row.attacker.name)"
+              >
+                <app-type-icon [name]="row.attacker.name" />
+              </button>
+            </th>
+            @for (cell of row.cells; track cell.defender; let c = $index) {
+              <td
+                class="cell"
+                [class]="cell.kind"
+                [class.cross]="hoveredRow() === r || hoveredCol() === c"
+                [class.focus]="hoveredRow() === r && hoveredCol() === c"
+                [class.selected-line]="
+                  selected() === row.attacker.name || selected() === cell.defender
+                "
+                [title]="cellTitle(row, cell)"
+                (mouseenter)="hover(r, c)"
+              >
+                {{ cell.label }}
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @let d = panel();
+  <section class="details" [class.idle]="!d.name" aria-live="polite">
+    <header class="details-head">
+      @if (d.name) {
+        <app-type-icon [name]="d.name" />
+        <button type="button" class="close-button" (click)="select(d.name)">Close</button>
+      } @else {
+        <p class="details-empty">
+          Click a type (row or column header) to see what it is strong and weak against.
+        </p>
+      }
+    </header>
+    <div class="details-columns">
+      @for (
+        side of [
+          { title: 'Attacking', groups: d.offense },
+          { title: 'Defending', groups: d.defense },
+        ];
+        track side.title
+      ) {
+        <div class="details-side">
+          <h2>{{ side.title }}</h2>
+          @for (group of side.groups; track group.label) {
+            <div class="group" [class]="group.tone">
+              <h3>
+                {{ group.label }} <span class="hint">{{ group.hint }}</span>
+              </h3>
+              <div class="group-types">
+                @for (name of group.types; track name) {
+                  <button
+                    type="button"
+                    class="type-link"
+                    [title]="'Show ' + name"
+                    (click)="select(name)"
+                  >
+                    <app-type-icon [name]="name" />
+                  </button>
+                } @empty {
+                  @if (d.name) {
+                    <span class="none">None</span>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <footer class="chart-footer">
+    <ul class="legend">
+      <li><span class="swatch super">2</span> Super effective</li>
+      <li><span class="swatch resisted">½</span> Not very effective</li>
+      <li><span class="swatch immune">0</span> No effect</li>
+      <li><span class="swatch neutral"></span> Normal damage</li>
+    </ul>
+    <p class="hover-label" aria-live="polite">
+      {{ hoverLabel() ?? 'Hover a cell to see the matchup' }}
+    </p>
+  </footer>
+</section>

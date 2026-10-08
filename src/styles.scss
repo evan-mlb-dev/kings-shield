@@ -44,3 +44,59 @@ img {
   --bg-dark: #121212;
   --bg-card: #1e1e1e;
 }
+
+.primary-button {
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: white;
+  white-space: nowrap;
+  cursor: pointer;
+  background: linear-gradient(180deg, #9a89ff, var(--primary-color) 50%, #5f4bd6);
+  border: 1px solid rgb(240 213 140 / 55%);
+  border-radius: 8px;
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.4;
+    transform: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #f0d58c;
+    outline-offset: 2px;
+  }
+}
+
+.text-input {
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: white;
+  user-select: text;
+  outline: none;
+  background: var(--bg-card);
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 8px;
+
+  &:focus {
+    border-color: var(--primary-color);
+  }
+}
+
+.status-message {
+  font-size: 0.7rem;
+  color: #b9f5c2;
+
+  a {
+    text-decoration: underline;
+  }
+}

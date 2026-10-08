@@ -5,11 +5,14 @@ import {
   CdkDropList,
   CdkDropListGroup,
 } from '@angular/cdk/drag-drop';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { PokemonDb } from '../../models/pokemon/pokemon-db';
 import { Pokemon } from '../../services/pokemon.models';
 import { ParsedPokemon } from '../../services/save-file-parser';
 import { GameStateService, MAX_TEAM_SIZE, pokemonKey } from '../../states/game-state';
+import { PcFiltersState } from '../../states/pc-filters';
+import { SavedTeamsState } from '../../states/saved-teams';
+import { RouterLink } from '@angular/router';
 import { TypeIcon } from '../../shared/icons/type-icon';
 import { typeColor } from '../../shared/type-colors';
 import { PokemonCard } from '../pokemon-card/pokemon-card';
@@ -21,6 +24,9 @@ interface Entry {
 }
 
 type DropData = number | Entry[];
+
+const FAINTED_LIST_ID = 'fainted-list';
+const FAINTED_HEADER_ID = 'fainted-header';
 
 export type SortKey = 'tier' | 'total' | 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
 
@@ -96,19 +102,17 @@ function matchupScore(m: Matchup | undefined): number {
   return offense + defense;
 }
 
-const PC_COLLAPSED_KEY = 'king_shield_pc_collapsed';
-
-function readPcCollapsed(): boolean {
-  try {
-    return localStorage.getItem(PC_COLLAPSED_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
 @Component({
   selector: 'app-team-builder',
-  imports: [PokemonCard, TypeIcon, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragPlaceholder],
+  imports: [
+    PokemonCard,
+    TypeIcon,
+    RouterLink,
+    CdkDropListGroup,
+    CdkDropList,
+    CdkDrag,
+    CdkDragPlaceholder,
+  ],
   templateUrl: './team-builder.html',
   styleUrl: './team-builder.scss',
 })
@@ -117,6 +121,36 @@ export class TeamBuilder {
   private db = inject(PokemonDb);
   // states
   protected gameState = inject(GameStateService);
+  private pcFilters = inject(PcFiltersState);
+  private savedTeams = inject(SavedTeamsState);
+
+  /** The "name your team" form is open */
+  protected readonly naming = signal(false);
+  protected readonly teamName = signal('');
+  protected readonly justSaved = signal<string | null>(null);
+  private savedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  private readonly teamNameInput = viewChild<ElementRef<HTMLInputElement>>('teamNameInput');
+
+  protected startSaving(): void {
+    this.teamName.set(this.savedTeams.defaultName());
+    this.naming.set(true);
+    setTimeout(() => this.teamNameInput()?.nativeElement.select());
+  }
+
+  protected cancelSaving(): void {
+    this.naming.set(false);
+  }
+
+  protected confirmSaving(): void {
+    const team = this.gameState.team();
+    if (team.length === 0) return;
+    const saved = this.savedTeams.save(this.teamName(), team, this.gameState.saveName());
+    this.naming.set(false);
+    this.justSaved.set(saved.name);
+    clearTimeout(this.savedTimer);
+    this.savedTimer = setTimeout(() => this.justSaved.set(null), 4000);
+  }
 
   protected readonly maxTeamSize = MAX_TEAM_SIZE;
 
@@ -129,22 +163,27 @@ export class TeamBuilder {
     Array.from({ length: MAX_TEAM_SIZE }, (_, i) => this.team()[i] ?? null),
   );
 
-  protected readonly pcCollapsed = signal(readPcCollapsed());
+  protected readonly pcCollapsed = this.pcFilters.pcCollapsed;
 
   protected togglePc(): void {
-    this.pcCollapsed.update((collapsed) => !collapsed);
-    try {
-      localStorage.setItem(PC_COLLAPSED_KEY, String(this.pcCollapsed()));
-    } catch {
-      // Storage unavailable: the choice only lasts for this visit
-    }
+    this.pcFilters.togglePc();
   }
+
+  private readonly pcPanel = viewChild<ElementRef<HTMLElement>>('pcPanel');
+
+  private readonly revealPc = effect(() => {
+    if (this.pcFilters.revealRequest() === 0) return;
+    // After the PC is unfolded and rendered
+    queueMicrotask(() =>
+      this.pcPanel()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+  });
 
   protected readonly search = signal('');
 
   /** Selected types: a Pokémon must have all of them (max 2) */
   protected readonly typeFilters = signal<string[]>([]);
-  protected readonly effectiveAgainst = signal<string | null>(null);
+  protected readonly effectiveAgainst = this.pcFilters.effectiveAgainst;
   protected readonly sortKey = signal<SortKey | null>(null);
   protected readonly sortDescending = signal(true);
 
@@ -200,20 +239,20 @@ export class TeamBuilder {
       const list: MatchupBadge[] = [];
       if (m.stabMoveEffective) {
         list.push({
-          label: 'Effective STAB move',
+          label: 'STAB move',
           title: `Knows a super effective move of its own type against ${target} (STAB ×1.5)`,
           kind: 'stab',
         });
       } else if (m.typeEffective) {
         list.push({
-          label: 'Effective type',
+          label: 'Type',
           title: `One of its types is super effective against ${target}`,
           kind: 'offense',
         });
       }
       if (m.moveEffective && !m.stabMoveEffective) {
         list.push({
-          label: 'Effective move',
+          label: 'Move',
           title: `Knows a move that is super effective against ${target}`,
           kind: 'offense',
         });
@@ -338,14 +377,53 @@ export class TeamBuilder {
     if (typeof source === 'number') {
       this.gameState.swapInTeam(source, target);
     } else {
+      if (event.previousContainer.id === FAINTED_LIST_ID)
+        this.gameState.revive(event.item.data.parsed);
       this.gameState.placeInTeam(event.item.data.parsed, target);
     }
   }
 
   protected dropOnPc(event: CdkDragDrop<Entry[], DropData, Entry>): void {
-    if (event.previousContainer !== event.container) {
+    if (event.previousContainer === event.container) return;
+    if (event.previousContainer.id === FAINTED_LIST_ID) {
+      this.gameState.revive(event.item.data.parsed);
+    } else {
       this.gameState.removeFromTeam(event.item.data.parsed);
     }
+  }
+
+  protected readonly faintedListId = FAINTED_LIST_ID;
+  protected readonly faintedHeaderId = FAINTED_HEADER_ID;
+  protected readonly faintedCollapsed = this.pcFilters.faintedCollapsed;
+  protected readonly fainted = computed<Entry[]>(() =>
+    this.gameState.fainted().map((p) => this.toEntry(p)),
+  );
+
+  protected toggleFainted(): void {
+    this.pcFilters.toggleFainted();
+  }
+
+  protected readonly faintedPeek = signal(false);
+
+  protected endDrag(): void {
+    this.faintedPeek.set(false);
+  }
+
+  /** Dropped in the Fainted box (from the team or the PC) */
+  protected dropOnFainted(event: CdkDragDrop<Entry[], DropData, Entry>): void {
+    if (event.previousContainer === event.container) return;
+    if (!event.isPointerOverContainer) {
+      if (typeof event.previousContainer.data === 'number') {
+        this.gameState.removeFromTeam(event.item.data.parsed);
+      }
+      return;
+    }
+    this.gameState.faint(event.item.data.parsed);
+  }
+
+  /** Double-click on a fainted Pokémon: back to the PC */
+  protected revive(entry: Entry): void {
+    this.gameState.revive(entry.parsed);
   }
 
   protected add(entry: Entry): void {
