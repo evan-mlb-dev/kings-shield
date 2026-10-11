@@ -28,8 +28,100 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap"
       rel="stylesheet"
     />
+
+    <style>
+      .splash {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 50% 40%, #2b2252 0%, #121212 70%);
+        transition:
+          opacity 0.6s ease,
+          visibility 0.6s ease;
+      }
+
+      .splash.hide {
+        visibility: hidden;
+        opacity: 0;
+      }
+
+      .splash-logo {
+        width: 110px;
+        height: auto;
+        animation: splash-float 2.4s ease-in-out infinite;
+      }
+
+      .splash-title {
+        font-family: 'Cinzel Decorative', serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: transparent;
+        letter-spacing: 0.02em;
+        background: linear-gradient(180deg, #f0d58c, #c99a3e);
+        -webkit-background-clip: text;
+        background-clip: text;
+      }
+
+      .splash-bar {
+        width: 160px;
+        height: 4px;
+        overflow: hidden;
+        background: rgb(255 255 255 / 10%);
+        border-radius: 4px;
+      }
+
+      .splash-bar::after {
+        display: block;
+        width: 40%;
+        height: 100%;
+        content: '';
+        background: linear-gradient(90deg, #8774f5, #f0d58c);
+        border-radius: 4px;
+        animation: splash-bar 1.2s ease-in-out infinite;
+      }
+
+      @keyframes splash-float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+
+      @keyframes splash-bar {
+        0% {
+          transform: translateX(-100%);
+        }
+
+        100% {
+          transform: translateX(250%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .splash,
+        .splash-logo,
+        .splash-bar::after {
+          transition: none;
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" class="splash" role="status" aria-label="Loading King's Shield">
+      <img class="splash-logo" src="images/logo-kings.png" alt="" />
+      <div class="splash-title">King's Shield</div>
+      <div class="splash-bar"></div>
+    </div>
     <app-root></app-root>
   </body>
 </html>
