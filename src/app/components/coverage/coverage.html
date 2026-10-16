@@ -1,7 +1,28 @@
 <section class="coverage">
   <div class="panel">
-    <header class="panel-head">
-      <h2>Coverage</h2>
+    <header class="panel-head" [class.collapsed]="collapsed()">
+      <h2>
+        <button
+          type="button"
+          class="collapse-toggle"
+          [attr.aria-expanded]="!collapsed()"
+          aria-controls="coverage-content"
+          [title]="collapsed() ? 'Expand the coverage' : 'Collapse the coverage'"
+          (click)="toggleCollapsed()"
+        >
+          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 9l6 6 6-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Coverage
+        </button>
+      </h2>
 
       @if (scores(); as list) {
         <div class="scores">
@@ -52,185 +73,199 @@
       </div>
     </header>
 
-    <p class="tab-help">
-      @if (tab() === 'defensive') {
-        Damage each team member takes from each attacking type.
-      } @else {
-        Best multiplier each team member deals to each type, with its damaging moves.
-      }
-    </p>
-
-    @if (members().length === 0) {
-      <p class="empty">Add Pokémon to your team to see its coverage.</p>
-    } @else {
-      @if (criticals().length > 0) {
-        <p class="criticals" role="alert">
-          <span class="criticals-label">⚠ Critical weaknesses</span>
-          <span class="banner-types">
-            @for (c of criticals(); track c.name) {
-              <button
-                type="button"
-                class="critical-chip chip-button"
-                [title]="
-                  c.count +
-                  ' team members are weak to ' +
-                  c.name +
-                  ' · click: PC Pokémon effective vs ' +
-                  c.name
-                "
-                (click)="filterPc(c.name)"
-              >
-                <app-type-icon [name]="c.name" />
-                <span class="critical-count">{{ c.count }}/{{ members().length }} weak</span>
-              </button>
-            }
-          </span>
-        </p>
-      }
-      <p
-        class="warnings"
-        [class.ok]="warnings().length === 0 && criticals().length === 0"
-        aria-live="polite"
-      >
-        @if (warnings().length === 0) {
-          @if (criticals().length > 0) {
-            No other weak spot.
-          } @else if (tab() === 'defensive') {
-            No type hits more of your team for ×2 than it resists.
+    @if (!collapsed()) {
+      <div id="coverage-content">
+        <p class="tab-help">
+          @if (tab() === 'defensive') {
+            Damage each team member takes from each attacking type.
           } @else {
-            Every type is hit super effectively by at least one team member.
+            Best multiplier each team member deals to each type, with its damaging moves.
           }
-        } @else {
-          <span class="warnings-label">
-            {{ tab() === 'defensive' ? 'Weak spots' : 'Not covered' }}
-          </span>
-          <span class="banner-types">
-            @for (name of warnings(); track name) {
-              <button
-                type="button"
-                class="chip-button"
-                [title]="'PC Pokémon effective vs ' + name"
-                (click)="filterPc(name)"
-              >
-                <app-type-icon [name]="name" />
-              </button>
-            }
-          </span>
-        }
-      </p>
-
-      @if (solids().length > 0) {
-        <p class="solids">
-          <span class="solids-label">
-            {{ tab() === 'defensive' ? 'Well resisted' : 'Well attacked' }}
-          </span>
-          <span class="banner-types">
-            @for (r of solids(); track r.name) {
-              <button
-                type="button"
-                class="solid-chip chip-button"
-                [title]="
-                  (tab() === 'defensive'
-                    ? r.count + ' team members resist ' + r.name
-                    : r.count + ' team members hit ' + r.name + ' super effectively') +
-                  ' · click: PC Pokémon effective vs ' +
-                  r.name
-                "
-                (click)="filterPc(r.name)"
-              >
-                <app-type-icon [name]="r.name" />
-                <span class="solid-count-label">
-                  {{ r.count }}/{{ members().length }}
-                  {{ tab() === 'defensive' ? 'resist' : 'hit ×2' }}
-                </span>
-              </button>
-            }
-          </span>
         </p>
-      }
 
-      <div class="table-wrap">
-        <table class="coverage-table" role="tabpanel">
-          <thead>
-            <tr>
-              <th class="type-col" scope="col">
-                {{ tab() === 'defensive' ? 'Attacking type' : 'Defending type' }}
-              </th>
-              @for (member of members(); track member.key) {
-                <th class="member-col" scope="col" [title]="member.mon.nickname">
-                  <app-pokemon-sprite
-                    [speciesId]="member.mon.speciesId"
-                    [name]="member.mon.speciesName"
-                  />
-                  <span class="member-name">{{ member.mon.nickname }}</span>
-                </th>
-              }
-              <th class="sum-col" scope="col">{{ tab() === 'defensive' ? 'Weak' : 'Hit ×2' }}</th>
-              <th class="sum-col" scope="col">
-                {{ tab() === 'defensive' ? 'Resist' : 'Resisted' }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of rows(); track row.type.id) {
-              <tr
-                [class.warning]="row.warning"
-                [class.critical]="row.critical"
-                [class.solid]="row.solid"
-              >
-                <th class="type-col" scope="row">
+        @if (members().length === 0) {
+          <p class="empty">Add Pokémon to your team to see its coverage.</p>
+        } @else {
+          @if (criticals().length > 0) {
+            <p class="criticals" role="alert">
+              <span class="criticals-label">⚠ Critical weaknesses</span>
+              <span class="banner-types">
+                @for (c of criticals(); track c.name) {
                   <button
                     type="button"
-                    class="chip-button row-type"
-                    [title]="'PC Pokémon effective vs ' + row.type.name"
-                    (click)="filterPc(row.type.name)"
+                    class="critical-chip chip-button"
+                    [title]="
+                      c.count +
+                      ' team members are weak to ' +
+                      c.name +
+                      ' · click: PC Pokémon effective vs ' +
+                      c.name
+                    "
+                    (click)="filterPc(c.name)"
                   >
-                    <app-type-icon [name]="row.type.name" />
+                    <app-type-icon [name]="c.name" />
+                    <span class="critical-count">{{ c.count }}/{{ members().length }} weak</span>
                   </button>
-                </th>
-                @for (cell of row.cells; track $index) {
-                  <td class="cell" [class]="cell.tone" [title]="cell.title">{{ cell.label }}</td>
                 }
-                <td
-                  class="sum sum-primary"
-                  [class.alert]="tab() === 'defensive' && row.primary > 0"
-                  [attr.data-severity]="row.critical ? row.primary : null"
-                  [attr.data-hit]="tab() === 'offensive' && row.primary >= 3 ? row.primary : null"
-                >
-                  {{ row.primary }}
-                  @if (row.critical && row.primary >= 6) {
-                    <span class="severity-icon" aria-hidden="true">☠</span>
-                  }
-                </td>
-                <td
-                  class="sum sum-secondary"
-                  [class.solid-count]="row.solid"
-                  [class.alert]="tab() === 'offensive' && row.secondary > 0"
-                  [attr.data-resist]="row.solid ? row.secondary : null"
-                >
-                  {{ row.secondary }}
-                </td>
-              </tr>
+              </span>
+            </p>
+          }
+          <p
+            class="warnings"
+            [class.ok]="warnings().length === 0 && criticals().length === 0"
+            aria-live="polite"
+          >
+            @if (warnings().length === 0) {
+              @if (criticals().length > 0) {
+                No other weak spot.
+              } @else if (tab() === 'defensive') {
+                No type hits more of your team for ×2 than it resists.
+              } @else {
+                Every type is hit super effectively by at least one team member.
+              }
+            } @else {
+              <span class="warnings-label">
+                {{ tab() === 'defensive' ? 'Weak spots' : 'Not covered' }}
+              </span>
+              <span class="banner-types">
+                @for (name of warnings(); track name) {
+                  <button
+                    type="button"
+                    class="chip-button"
+                    [title]="'PC Pokémon effective vs ' + name"
+                    (click)="filterPc(name)"
+                  >
+                    <app-type-icon [name]="name" />
+                  </button>
+                }
+              </span>
             }
-          </tbody>
-        </table>
-      </div>
+          </p>
 
-      <ul class="legend">
-        @if (tab() === 'defensive') {
-          <li><span class="swatch awful">4</span> ×4 weak</li>
-          <li><span class="swatch bad">2</span> ×2 weak</li>
-          <li><span class="swatch good">½</span> Resists</li>
-          <li><span class="swatch great">¼</span> Double resist</li>
-          <li><span class="swatch immune">0</span> Immune</li>
-        } @else {
-          <li><span class="swatch good">2</span> Super effective</li>
-          <li><span class="swatch bad">½</span> Not very effective</li>
-          <li><span class="swatch immune">0</span> No effect</li>
-          <li><span class="swatch none">—</span> No damaging move</li>
+          @if (solids().length > 0) {
+            <p class="solids">
+              <span class="solids-label">
+                {{ tab() === 'defensive' ? 'Well resisted' : 'Well attacked' }}
+              </span>
+              <span class="banner-types">
+                @for (r of solids(); track r.name) {
+                  <button
+                    type="button"
+                    class="solid-chip chip-button"
+                    [title]="
+                      (tab() === 'defensive'
+                        ? r.count + ' team members resist ' + r.name
+                        : r.count + ' team members hit ' + r.name + ' super effectively') +
+                      ' · click: PC Pokémon effective vs ' +
+                      r.name
+                    "
+                    (click)="filterPc(r.name)"
+                  >
+                    <app-type-icon [name]="r.name" />
+                    <span class="solid-count-label">
+                      {{ r.count }}/{{ members().length }}
+                      {{ tab() === 'defensive' ? 'resist' : 'hit ×2' }}
+                    </span>
+                  </button>
+                }
+              </span>
+            </p>
+          }
+
+          <div class="table-wrap">
+            <table class="coverage-table" [class.offensive]="tab() === 'offensive'" role="tabpanel">
+              <thead>
+                <tr>
+                  <th class="type-col" scope="col">
+                    {{ tab() === 'defensive' ? 'Attacking type' : 'Defending type' }}
+                  </th>
+                  @for (member of members(); track member.key) {
+                    <th class="member-col" scope="col" [title]="member.mon.nickname">
+                      <app-pokemon-sprite
+                        [speciesId]="member.mon.speciesId"
+                        [name]="member.mon.speciesName"
+                      />
+                      <span class="member-name">{{ member.mon.nickname }}</span>
+                    </th>
+                  }
+                  <th class="sum-gap" aria-hidden="true"></th>
+                  <th class="sum-col" scope="col">
+                    {{ tab() === 'defensive' ? 'Weak' : 'Hit ×2' }}
+                  </th>
+                  <th class="sum-col" scope="col">
+                    {{ tab() === 'defensive' ? 'Resist' : 'Resisted' }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of rows(); track row.type.id) {
+                  <tr
+                    [class.warning]="row.warning"
+                    [class.critical]="row.critical"
+                    [class.solid]="row.solid"
+                  >
+                    <th class="type-col" scope="row">
+                      <button
+                        type="button"
+                        class="chip-button row-type"
+                        [title]="'PC Pokémon effective vs ' + row.type.name"
+                        (click)="filterPc(row.type.name)"
+                      >
+                        <app-type-icon [name]="row.type.name" />
+                      </button>
+                    </th>
+                    @for (cell of row.cells; track $index) {
+                      <td class="cell" [class]="cell.tone" [title]="cell.title">
+                        {{ cell.label }}
+                      </td>
+                    }
+                    <td class="sum-gap" aria-hidden="true"></td>
+                    <td
+                      class="sum sum-primary"
+                      [attr.data-count]="row.primary"
+                      [class.alert]="tab() === 'defensive' && row.primary > 0"
+                      [attr.data-severity]="row.critical ? row.primary : null"
+                      [attr.data-hit]="
+                        tab() === 'offensive' && row.primary >= 3 ? row.primary : null
+                      "
+                    >
+                      {{ row.primary }}
+                      @if (row.critical && row.primary >= 6) {
+                        <span class="severity-icon" aria-hidden="true">☠</span>
+                      }
+                    </td>
+                    <td
+                      class="sum sum-secondary"
+                      [attr.data-count]="row.secondary"
+                      [class.solid-count]="row.solid"
+                      [class.alert]="tab() === 'offensive' && row.secondary > 0"
+                      [attr.data-resist]="row.solid ? row.secondary : null"
+                    >
+                      {{ row.secondary }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <ul class="legend">
+            @if (tab() === 'defensive') {
+              <li><span class="swatch awful">4</span> ×4 weak</li>
+              <li><span class="swatch bad">2</span> ×2 weak</li>
+              <li><span class="swatch good">½</span> Resists</li>
+              <li><span class="swatch great">¼</span> Double resist</li>
+              <li><span class="swatch immune">0</span> Immune</li>
+            } @else {
+              <li><span class="swatch good">2</span> Super effective</li>
+              <li><span class="swatch bad">½</span> Not very effective</li>
+              <li><span class="swatch immune">0</span> No effect</li>
+              <li><span class="swatch none">—</span> No damaging move</li>
+            }
+            <li class="legend-note">Abilities are not taken into account.</li>
+          </ul>
         }
-        <li class="legend-note">Abilities are not taken into account.</li>
-      </ul>
+      </div>
     }
   </div>
 </section>

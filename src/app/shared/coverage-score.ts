@@ -1,6 +1,6 @@
 import type { Pokemon, PokemonType } from '../services/pokemon.models';
 
-const STRICTNESS = 1.6;
+const STRICTNESS = 1.0;
 
 const CRITICAL_WEAK_COUNT = 3;
 

@@ -275,8 +275,11 @@ tr.warning .sum-primary {
   width: 22px;
   height: 22px;
   font-size: 0.7rem;
-  background: rgb(255 255 255 / 4%);
   border-radius: 5px;
+
+  &.none {
+    background: rgb(255 255 255 / 4%);
+  }
 }
 
 .legend-note {
@@ -324,11 +327,6 @@ tr.warning .sum-primary {
 }
 
 tr.critical {
-  .cell.neutral,
-  .cell.none {
-    background: rgb(179 38 30 / 18%);
-  }
-
   .sum-primary {
     font-weight: bold;
     color: #fff;

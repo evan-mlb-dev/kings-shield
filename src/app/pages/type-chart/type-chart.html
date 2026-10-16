@@ -15,12 +15,7 @@
             <span class="corner-atk">ATK ↓</span>
           </th>
           @for (t of types; track t.id; let c = $index) {
-            <th
-              scope="col"
-              class="col-head"
-              [class.highlight]="hoveredCol() === c"
-              [class.selected]="selected() === t.name"
-            >
+            <th scope="col" class="col-head" [class.highlight]="hoveredCol() === c">
               <button
                 type="button"
                 class="head-button"
@@ -54,11 +49,10 @@
                 [class]="cell.kind"
                 [class.cross]="hoveredRow() === r || hoveredCol() === c"
                 [class.focus]="hoveredRow() === r && hoveredCol() === c"
-                [class.selected-line]="
-                  selected() === row.attacker.name || selected() === cell.defender
-                "
+                [class.selected-line]="selected() === row.attacker.name"
                 [title]="cellTitle(row, cell)"
                 (mouseenter)="hover(r, c)"
+                (click)="select(row.attacker.name)"
               >
                 {{ cell.label }}
               </td>

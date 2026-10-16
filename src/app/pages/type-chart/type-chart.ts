@@ -109,7 +109,7 @@ export class TypeChartPage {
   }
 
   protected cellTitle(row: Row, cell: Cell): string {
-    return `${row.attacker.name} → ${cell.defender}: ×${formatMultiplier(cell.multiplier)}`;
+    return `${row.attacker.name} → ${cell.defender}: ×${formatMultiplier(cell.multiplier)} · click: ${row.attacker.name} details`;
   }
 }
 

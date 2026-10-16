@@ -107,7 +107,8 @@
   height: var(--cell);
   font-size: 0.8rem;
   text-align: center;
-  cursor: default;
+
+  cursor: pointer;
   background: rgb(255 255 255 / 4%);
   border-radius: 6px;
   transition:

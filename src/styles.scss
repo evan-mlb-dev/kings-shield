@@ -100,3 +100,89 @@ img {
     text-decoration: underline;
   }
 }
+
+.collapse-toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 8px 2px 2px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: rgb(255 255 255 / 6%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.chevron {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+
+  .collapsed & {
+    transform: rotate(-90deg);
+  }
+}
+
+.coverage-table .sum[data-count='0'] {
+  opacity: 0.45;
+}
+
+.coverage-table .sum:is([data-count='1'], [data-count='2']) {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.coverage-table:not(.offensive) .sum-primary:is([data-count='1'], [data-count='2']),
+.coverage-table.offensive .sum-secondary:is([data-count='1'], [data-count='2']) {
+  color: #ff8a80;
+  background: rgb(194 46 40 / 22%);
+}
+
+.coverage-table:not(.offensive) .sum-secondary:is([data-count='1'], [data-count='2']),
+.coverage-table.offensive .sum-primary:is([data-count='1'], [data-count='2']) {
+  color: #9be7a6;
+  background: rgb(46 160 67 / 18%);
+}
+
+.coverage-table .sum-gap {
+  position: relative;
+  width: 14px;
+  padding: 0;
+  background: none;
+}
+
+.coverage-table td.sum-gap {
+  &::before {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    left: 50%;
+    width: 2px;
+    margin-left: -1px;
+    content: '';
+    background: rgb(240 213 140 / 35%);
+  }
+}
+
+.coverage-table td.sum {
+  background-color: rgb(135 116 245 / 12%);
+}
+
+.coverage-table th.sum-col {
+  font-size: 0.62rem;
+  color: #f0d58c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 1;
+}

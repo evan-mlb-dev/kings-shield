@@ -191,9 +191,10 @@ export class TeamBuilder {
     { key: 'tier', label: 'Tier' },
     { key: 'total', label: 'Total' },
     { key: 'hp', label: 'HP' },
+    // Offense side by side, then defense side by side
     { key: 'atk', label: 'Atk' },
-    { key: 'def', label: 'Def' },
     { key: 'spa', label: 'SpA' },
+    { key: 'def', label: 'Def' },
     { key: 'spd', label: 'SpD' },
     { key: 'spe', label: 'Spe' },
   ];

@@ -10,6 +10,16 @@ import { PcFiltersState } from '../../states/pc-filters';
 
 export type CoverageTab = 'defensive' | 'offensive';
 
+const COLLAPSED_KEY = 'king_shield_coverage_collapsed';
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 const SOLID_RESIST_COUNT = 3;
 
 const CRITICAL_WEAK_COUNT = 3;
@@ -53,6 +63,17 @@ export class Coverage {
   }
 
   protected readonly tab = signal<CoverageTab>('defensive');
+
+  protected readonly collapsed = signal(readCollapsed());
+
+  protected toggleCollapsed(): void {
+    this.collapsed.update((c) => !c);
+    try {
+      localStorage.setItem(COLLAPSED_KEY, String(this.collapsed()));
+    } catch {
+      // Storage unavailable: the choice only lasts for this visit
+    }
+  }
 
   private readonly types: PokemonType[] = TYPE_ORDER.map((name) => this.db.types.get(name)).filter(
     (t): t is PokemonType => !!t,
