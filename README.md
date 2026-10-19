@@ -1,59 +1,56 @@
-# KingsShield
+# King's Shield
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.3.0.
+A team builder for **Pokémon Radical Red** (Nuzlocke friendly). Load your `.sav` file, build a team from your party and PC, and check its type coverage.
 
-## Development server
+**Live site:** https://evan-mlb-dev.github.io/kings-shield/
 
-To start a local development server, run:
+## Features
 
-```bash
-ng serve
-```
+- **Save file loading**: reads Radical Red `.sav` files (party and PC boxes), with levels recomputed for PC Pokémon.
+- **Team builder**: drag & drop between the team and the PC, lock team members, set fainted Pokémon aside.
+- **PC filters**: search, type, "effective vs" a type (with match-up badges), sort by base stats or Smogon tier.
+- **Coverage**: defensive and offensive tables, critical weaknesses, well resisted types and 0–100 team scores.
+- **Type chart**: interactive 18×18 chart with the strengths and weaknesses of each type.
+- **History**: save named teams and load them back later.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Everything runs in the browser: your save and teams are stored in `localStorage`, nothing is sent to a server.
 
-## Code scaffolding
+## Getting started
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Requirements: Node.js 22+ and npm.
 
 ```bash
-ng generate --help
+npm install
+npm start
 ```
 
-## Building
+Then open http://localhost:4200/.
 
-To build the project run:
+| Command | Description |
+| --- | --- |
+| `npm start` | Development server with live reload |
+| `npm run build` | Production build in `dist/kings-shield/browser` |
+| `npm test` | Unit tests |
 
-```bash
-ng build
-```
+## Data
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+The Pokémon data lives in `src/app/data/`. Scripts to refresh it:
 
-## Running unit tests
+| Script | Output |
+| --- | --- |
+| `node src/app/data/build-pokemon-db.mjs <rawDir>` | Species, moves, abilities, items, natures and types from the Radical Red dex export |
+| `node src/app/data/fetch-growth-rates.mjs` | `growth-rates.json`: experience curves (used to compute PC levels) |
+| `node src/app/data/fetch-smogon-data.mjs` | `smogon.json`: Smogon tiers and dex links |
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Deployment
 
-```bash
-ng test
-```
+Every push to `main` builds the app and publishes it on GitHub Pages (`.github/workflows/deploy.yml`).
 
-## Running end-to-end tests
+## Credits
 
-For end-to-end (e2e) testing, run:
+- Radical Red data and sprites: [Radical Red Pokédex](https://github.com/JwowSquared/Radical-Red-Pokedex)
+- Smogon tiers and some sprites: [Pokémon Showdown](https://play.pokemonshowdown.com/)
+- Item sprites and growth rates: [PokeAPI](https://pokeapi.co/)
+- Type icons: [partywhale/pokemon-type-icons](https://github.com/partywhale/pokemon-type-icons) (MIT)
 
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Pokémon and all related names and images are © Nintendo, Game Freak and The Pokémon Company. This is an unofficial fan project, not affiliated with or endorsed by them.

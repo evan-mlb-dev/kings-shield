@@ -435,6 +435,14 @@ export class TeamBuilder {
     this.gameState.removeFromTeam(entry.parsed);
   }
 
+  protected isLocked(entry: Entry): boolean {
+    return this.gameState.lockedKeys().has(entry.key);
+  }
+
+  protected toggleLock(entry: Entry): void {
+    this.gameState.toggleLock(entry.parsed);
+  }
+
   private toEntry(parsed: ParsedPokemon): Entry {
     return { key: pokemonKey(parsed), parsed, mon: Pokemon.fromParsed(parsed, this.db) };
   }

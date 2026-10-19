@@ -29,6 +29,9 @@ export class GameStateService {
 
   private readonly _faintedKeys = signal<ReadonlySet<string>>(new Set());
 
+  private readonly _lockedKeys = signal<ReadonlySet<string>>(new Set());
+  readonly lockedKeys = this._lockedKeys.asReadonly();
+
   /** Fainted Pokémon of the current save */
   readonly fainted = computed<ParsedPokemon[]>(() => {
     const keys = this._faintedKeys();
@@ -46,7 +49,15 @@ export class GameStateService {
 
   constructor() {
     this.hydrate();
-    effect(() => this.persist(this.saveName(), this.pkmnData(), this._team(), this._faintedKeys()));
+    effect(() =>
+      this.persist(
+        this.saveName(),
+        this.pkmnData(),
+        this._team(),
+        this._faintedKeys(),
+        this._lockedKeys(),
+      ),
+    );
   }
 
   setSaveName(name: string): void {
@@ -65,7 +76,10 @@ export class GameStateService {
       const next = [...team];
       const at = Math.max(0, Math.min(index, next.length));
       if (next.length >= MAX_TEAM_SIZE) {
-        next[Math.min(at, next.length - 1)] = mon;
+        let slot = Math.min(at, next.length - 1);
+        while (slot >= 0 && this.isLocked(next[slot])) slot--;
+        if (slot < 0) return team;
+        next[slot] = mon;
       } else {
         next.splice(at, 0, mon);
       }
@@ -78,6 +92,7 @@ export class GameStateService {
     this._team.update((team) => {
       if (team.some((p) => pokemonKey(p) === key)) return team;
       if (slot < 0 || slot >= MAX_TEAM_SIZE) return team;
+      if (slot < team.length && this.isLocked(team[slot])) return team;
       const next = [...team];
       if (slot < next.length) next[slot] = mon;
       else next.push(mon);
@@ -88,6 +103,7 @@ export class GameStateService {
   swapInTeam(from: number, to: number): void {
     this._team.update((team) => {
       if (from === to || from < 0 || from >= team.length || to < 0) return team;
+      if (this.isLocked(team[from]) || (to < team.length && this.isLocked(team[to]))) return team;
       const next = [...team];
       if (to < next.length) {
         [next[from], next[to]] = [next[to], next[from]];
@@ -99,8 +115,25 @@ export class GameStateService {
   }
 
   removeFromTeam(mon: ParsedPokemon): void {
+    if (this.isLocked(mon)) return;
     const key = pokemonKey(mon);
     this._team.update((team) => team.filter((p) => pokemonKey(p) !== key));
+  }
+
+  isLocked(mon: ParsedPokemon): boolean {
+    return this._lockedKeys().has(pokemonKey(mon));
+  }
+
+  /** Locks / unlocks a team member */
+  toggleLock(mon: ParsedPokemon): void {
+    const key = pokemonKey(mon);
+    if (!this._team().some((p) => pokemonKey(p) === key)) return;
+    this._lockedKeys.update((keys) => {
+      const next = new Set(keys);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   moveInTeam(from: number, to: number): void {
@@ -113,16 +146,18 @@ export class GameStateService {
     });
   }
 
-  /** Sends every team member back to the PC. */
   clearTeam(): void {
-    this._team.set([]);
+    this._team.update((team) => team.filter((p) => this.isLocked(p)));
   }
 
   setTeam(team: readonly ParsedPokemon[]): void {
+    // A whole new team: previous locks no longer apply
+    this._lockedKeys.set(new Set());
     this._team.set(team.slice(0, MAX_TEAM_SIZE));
   }
 
   faint(mon: ParsedPokemon): void {
+    if (this.isLocked(mon)) return;
     const key = pokemonKey(mon);
     this.removeFromTeam(mon);
     this._faintedKeys.update((keys) => new Set(keys).add(key));
@@ -143,7 +178,10 @@ export class GameStateService {
 
   /** Puts the save's original party back. */
   resetTeam(): void {
-    this._team.set(this.pkmnData()?.team.slice(0, MAX_TEAM_SIZE) ?? []);
+    const locked = this._team().filter((p) => this.isLocked(p));
+    const lockedKeys = new Set(locked.map(pokemonKey));
+    const party = (this.pkmnData()?.team ?? []).filter((p) => !lockedKeys.has(pokemonKey(p)));
+    this._team.set([...locked, ...party].slice(0, MAX_TEAM_SIZE));
   }
 
   clear(): void {
@@ -151,6 +189,7 @@ export class GameStateService {
     this.pkmnData.set(null);
     this._team.set([]);
     this._faintedKeys.set(new Set());
+    this._lockedKeys.set(new Set());
     try {
       localStorage.removeItem(CACHE_KEY);
     } catch (error) {
@@ -181,6 +220,7 @@ export class GameStateService {
       this.pkmnData.set(data);
       this._team.set(team.slice(0, MAX_TEAM_SIZE));
       this._faintedKeys.set(new Set((cached.faintedKeys as string[] | undefined) ?? []));
+      this._lockedKeys.set(new Set((cached.lockedKeys as string[] | undefined) ?? []));
     } catch (error) {
       console.error('Failed to restore the cached save, starting empty:', error);
     }
@@ -191,6 +231,7 @@ export class GameStateService {
     data: ParsedSave | null,
     team: ParsedPokemon[],
     faintedKeys: ReadonlySet<string>,
+    lockedKeys: ReadonlySet<string>,
   ): void {
     try {
       if (!saveName || !data) return;
@@ -202,6 +243,7 @@ export class GameStateService {
           data,
           teamKeys: team.map(pokemonKey),
           faintedKeys: [...faintedKeys],
+          lockedKeys: [...lockedKeys],
         }),
       );
     } catch (error) {

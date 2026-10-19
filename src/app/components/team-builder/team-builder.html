@@ -72,6 +72,7 @@
           cdkDropList
           cdkDropListSortingDisabled
           [cdkDropListData]="i"
+          [cdkDropListDisabled]="!!slot && isLocked(slot)"
           (cdkDropListDropped)="dropOnSlot($event)"
         >
           @if (slot) {
@@ -79,19 +80,53 @@
               class="team-card"
               cdkDrag
               [cdkDragData]="slot"
-              title="Double-click to send back to the PC"
+              [cdkDragDisabled]="isLocked(slot)"
+              [class.locked]="isLocked(slot)"
+              [title]="
+                isLocked(slot) ? 'Locked in the team' : 'Double-click to send back to the PC'
+              "
               (dblclick)="remove(slot)"
               (cdkDragStarted)="draggingTeamMember.set(true)"
               (cdkDragEnded)="draggingTeamMember.set(false); endDrag()"
             >
               <app-pokemon-card [pokemon]="slot.mon" />
+              @if (!isLocked(slot)) {
+                <button
+                  type="button"
+                  class="remove-button"
+                  title="Send back to the PC"
+                  (click)="remove(slot)"
+                >
+                  ×
+                </button>
+              }
               <button
                 type="button"
-                class="remove-button"
-                title="Send back to the PC"
-                (click)="remove(slot)"
+                class="lock-button"
+                [class.active]="isLocked(slot)"
+                [attr.aria-pressed]="isLocked(slot)"
+                [title]="isLocked(slot) ? 'Unlock' : 'Lock in the team'"
+                (click)="toggleLock(slot)"
+                (dblclick)="$event.stopPropagation()"
               >
-                ×
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor" />
+                  @if (isLocked(slot)) {
+                    <path
+                      d="M8 11V8a4 4 0 0 1 8 0v3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                    />
+                  } @else {
+                    <path
+                      d="M8 11V8a4 4 0 0 1 7.5-2"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                    />
+                  }
+                </svg>
               </button>
               <div class="drag-placeholder" *cdkDragPlaceholder></div>
             </div>
