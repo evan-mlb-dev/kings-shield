@@ -6,6 +6,34 @@
     </p>
   </header>
 
+  <section class="tier-lists">
+    @for (list of tierLists; track list.title) {
+      <div class="tier-list">
+        <h2>{{ list.title }} tier list</h2>
+        @for (row of list.tiers; track row.tier) {
+          <div class="tier-row">
+            <span class="tier-label" [attr.data-tier]="row.tier">{{ row.tier }}</span>
+            <div class="tier-types">
+              @for (name of row.types; track name) {
+                <button
+                  type="button"
+                  class="tier-type"
+                  [class.selected]="isSelected(name)"
+                  [title]="'Show ' + name + ' details'"
+                  (click)="select(name)"
+                >
+                  <app-type-icon [name]="name" />
+                </button>
+              } @empty {
+                <span class="tier-empty">—</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
   <div class="chart-wrap">
     <table class="chart" (mouseleave)="hover(null, null)">
       <thead>
@@ -19,7 +47,7 @@
               <button
                 type="button"
                 class="head-button"
-                [attr.aria-pressed]="selected() === t.name"
+                [attr.aria-pressed]="isSelected(t.name)"
                 [title]="'Show ' + t.name + ' match-ups'"
                 (click)="select(t.name)"
               >
@@ -32,11 +60,11 @@
       <tbody>
         @for (row of rows; track row.attacker.id; let r = $index) {
           <tr [class.highlight]="hoveredRow() === r">
-            <th scope="row" class="row-head" [class.selected]="selected() === row.attacker.name">
+            <th scope="row" class="row-head" [class.selected]="isSelected(row.attacker.name)">
               <button
                 type="button"
                 class="head-button"
-                [attr.aria-pressed]="selected() === row.attacker.name"
+                [attr.aria-pressed]="isSelected(row.attacker.name)"
                 [title]="'Show ' + row.attacker.name + ' match-ups'"
                 (click)="select(row.attacker.name)"
               >
@@ -47,9 +75,10 @@
               <td
                 class="cell"
                 [class]="cell.kind"
+                [class.fraction]="cell.label === '½'"
                 [class.cross]="hoveredRow() === r || hoveredCol() === c"
                 [class.focus]="hoveredRow() === r && hoveredCol() === c"
-                [class.selected-line]="selected() === row.attacker.name"
+                [class.selected-line]="isSelected(row.attacker.name)"
                 [title]="cellTitle(row, cell)"
                 (mouseenter)="hover(r, c)"
                 (click)="select(row.attacker.name)"
@@ -64,14 +93,39 @@
   </div>
 
   @let d = panel();
-  <section class="details" [class.idle]="!d.name" aria-live="polite">
+  <section class="details" [class.idle]="d.names.length === 0" aria-live="polite">
     <header class="details-head">
-      @if (d.name) {
-        <app-type-icon [name]="d.name" />
-        <button type="button" class="close-button" (click)="select(d.name)">Close</button>
+      @if (d.names.length > 0) {
+        <div class="details-types">
+          @for (name of d.names; track name) {
+            <app-type-icon [name]="name" />
+          }
+          @if (d.names.length === 1) {
+            <span class="details-tip">Click a second type for a dual type</span>
+          } @else {
+            <span class="details-tip">Dual type</span>
+          }
+        </div>
+        @if (typeScores(); as scores) {
+          <div class="type-scores">
+            @for (score of scores; track score.label) {
+              <span
+                class="type-score"
+                [style.--hue]="scoreHue(score.value)"
+                [style.--score]="score.value"
+                [title]="score.help"
+              >
+                <span class="type-score-ring">{{ score.value }}</span>
+                {{ score.label }}
+              </span>
+            }
+          </div>
+        }
+        <button type="button" class="close-button" (click)="clearSelection()">Close</button>
       } @else {
         <p class="details-empty">
-          Click a type (row or column header) to see what it is strong and weak against.
+          Click a type (row or column header) to see what it is strong and weak against. Select two
+          types for a dual type.
         </p>
       }
     </header>
@@ -101,7 +155,7 @@
                     <app-type-icon [name]="name" />
                   </button>
                 } @empty {
-                  @if (d.name) {
+                  @if (d.names.length > 0) {
                     <span class="none">None</span>
                   }
                 }
