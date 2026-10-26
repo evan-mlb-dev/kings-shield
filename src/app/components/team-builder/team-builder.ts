@@ -10,7 +10,7 @@ import { PokemonDb } from '../../models/pokemon/pokemon-db';
 import { Pokemon } from '../../services/pokemon.models';
 import { ParsedPokemon } from '../../services/save-file-parser';
 import { GameStateService, MAX_TEAM_SIZE, pokemonKey } from '../../states/game-state';
-import { PcFiltersState } from '../../states/pc-filters';
+import { PcFiltersState, PcView } from '../../states/pc-filters';
 import { SavedTeamsState } from '../../states/saved-teams';
 import { RouterLink } from '@angular/router';
 import { TypeIcon } from '../../shared/icons/type-icon';
@@ -26,7 +26,7 @@ interface Entry {
 type DropData = number | Entry[];
 
 const FAINTED_LIST_ID = 'fainted-list';
-const FAINTED_HEADER_ID = 'fainted-header';
+const FAINTED_TAB_ID = 'fainted-tab';
 
 export type SortKey = 'tier' | 'total' | 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
 
@@ -394,20 +394,26 @@ export class TeamBuilder {
   }
 
   protected readonly faintedListId = FAINTED_LIST_ID;
-  protected readonly faintedHeaderId = FAINTED_HEADER_ID;
-  protected readonly faintedCollapsed = this.pcFilters.faintedCollapsed;
+  protected readonly faintedTabId = FAINTED_TAB_ID;
   protected readonly fainted = computed<Entry[]>(() =>
     this.gameState.fainted().map((p) => this.toEntry(p)),
   );
 
-  protected toggleFainted(): void {
-    this.pcFilters.toggleFainted();
+  /** Tab shown in the PC panel: the PC or the Fainted box */
+  protected readonly pcView = this.pcFilters.pcView;
+
+  protected showView(view: PcView): void {
+    this.pcFilters.showView(view);
   }
 
-  protected readonly faintedPeek = signal(false);
-
-  protected endDrag(): void {
-    this.faintedPeek.set(false);
+  protected dropOnPcTab(event: CdkDragDrop<Entry[], DropData, Entry>): void {
+    if (!event.isPointerOverContainer) {
+      if (typeof event.previousContainer.data === 'number') {
+        this.gameState.removeFromTeam(event.item.data.parsed);
+      }
+      return;
+    }
+    this.dropOnPc(event);
   }
 
   /** Dropped in the Fainted box (from the team or the PC) */

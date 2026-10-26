@@ -68,6 +68,36 @@
   }
 }
 
+.pc-title {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.pc-tab {
+  padding: 2px 8px;
+  border: 1px dashed transparent;
+  opacity: 0.55;
+
+  &.active,
+  &:hover,
+  &.cdk-drop-list-receiving {
+    opacity: 1;
+  }
+
+  &.active {
+    background: rgb(135 116 245 / 20%);
+  }
+
+  &.cdk-drop-list-receiving {
+    border-color: rgb(255 255 255 / 30%);
+  }
+
+  &.cdk-drop-list-dragging {
+    border-color: #e5483e;
+  }
+}
+
 .chevron {
   width: 18px;
   height: 18px;
@@ -580,8 +610,4 @@
 
 .fainted-slot app-pokemon-card {
   filter: grayscale(1) brightness(0.75);
-}
-
-.fainted-preview {
-  pointer-events: none;
 }

@@ -87,7 +87,7 @@
               "
               (dblclick)="remove(slot)"
               (cdkDragStarted)="draggingTeamMember.set(true)"
-              (cdkDragEnded)="draggingTeamMember.set(false); endDrag()"
+              (cdkDragEnded)="draggingTeamMember.set(false)"
             >
               <app-pokemon-card [pokemon]="slot.mon" />
               @if (!isLocked(slot)) {
@@ -140,12 +140,13 @@
 
   <div class="panel pc-panel" #pcPanel>
     <header class="panel-head pc-head" [class.collapsed]="pcCollapsed()">
-      <h2>
+      <h2 class="pc-title">
         <button
           type="button"
           class="collapse-toggle"
           [attr.aria-expanded]="!pcCollapsed()"
           aria-controls="pc-content"
+          [attr.aria-label]="pcCollapsed() ? 'Expand the PC' : 'Collapse the PC'"
           [title]="pcCollapsed() ? 'Expand the PC' : 'Collapse the PC'"
           (click)="togglePc()"
         >
@@ -159,10 +160,43 @@
               stroke-linejoin="round"
             />
           </svg>
-          PC <span class="count">{{ visiblePc().length }}</span>
         </button>
+        <div class="pc-title" role="tablist" aria-label="PC boxes">
+          <button
+            type="button"
+            role="tab"
+            class="collapse-toggle pc-tab"
+            [class.active]="pcView() === 'pc'"
+            [attr.aria-selected]="pcView() === 'pc'"
+            cdkDropList
+            cdkDropListSortingDisabled
+            [cdkDropListDisabled]="pcView() === 'pc' && !pcCollapsed()"
+            [cdkDropListData]="visiblePc()"
+            (cdkDropListDropped)="dropOnPcTab($event)"
+            (click)="showView('pc')"
+          >
+            PC <span class="count">{{ visiblePc().length }}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="collapse-toggle pc-tab"
+            [class.active]="pcView() === 'fainted'"
+            [attr.aria-selected]="pcView() === 'fainted'"
+            title="Drop a Pokémon here when it faints"
+            cdkDropList
+            [id]="faintedTabId"
+            cdkDropListSortingDisabled
+            [cdkDropListDisabled]="pcView() === 'fainted' && !pcCollapsed()"
+            [cdkDropListData]="fainted()"
+            (cdkDropListDropped)="dropOnFainted($event)"
+            (click)="showView('fainted')"
+          >
+            Fainted <span class="count">{{ fainted().length }}</span>
+          </button>
+        </div>
       </h2>
-      @if (!pcCollapsed()) {
+      @if (!pcCollapsed() && pcView() === 'pc') {
         <div class="filters">
           <span class="filter-label">Type</span>
           <div class="type-filters" role="group" aria-label="Filter by type">
@@ -228,7 +262,7 @@
       }
     </header>
 
-    @if (!pcCollapsed()) {
+    @if (!pcCollapsed() && pcView() === 'pc') {
       <div class="pc-box" id="pc-content">
         <div class="pc-toolbar">
           <label class="search-field">
@@ -261,13 +295,7 @@
           (cdkDropListDropped)="dropOnPc($event)"
         >
           @for (entry of visiblePc(); track entry.key) {
-            <div
-              class="pc-slot"
-              cdkDrag
-              [cdkDragData]="entry"
-              (dblclick)="add(entry)"
-              (cdkDragEnded)="endDrag()"
-            >
+            <div class="pc-slot" cdkDrag [cdkDragData]="entry" (dblclick)="add(entry)">
               <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
               @if (matchupBadges().get(entry.key); as badges) {
                 <ul class="matchup-badges">
@@ -303,57 +331,8 @@
         </div>
       </div>
     }
-  </div>
 
-  <div class="panel fainted-panel">
-    <header
-      class="panel-head fainted-head"
-      [class.collapsed]="faintedCollapsed() && !faintedPeek()"
-      cdkDropList
-      [id]="faintedHeaderId"
-      cdkDropListSortingDisabled
-      [cdkDropListDisabled]="!faintedCollapsed()"
-      [cdkDropListData]="fainted()"
-      (cdkDropListEntered)="faintedPeek.set(true)"
-      (cdkDropListDropped)="dropOnFainted($event)"
-    >
-      <h2>
-        <button
-          type="button"
-          class="collapse-toggle"
-          [attr.aria-expanded]="!faintedCollapsed()"
-          aria-controls="fainted-list"
-          [title]="faintedCollapsed() ? 'Expand the fainted box' : 'Collapse the fainted box'"
-          (click)="toggleFainted()"
-        >
-          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M6 9l6 6 6-6"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          Fainted <span class="count">{{ fainted().length }}</span>
-        </button>
-      </h2>
-    </header>
-
-    @if (faintedCollapsed() && faintedPeek()) {
-      <div class="fainted fainted-preview" aria-hidden="true">
-        @for (entry of fainted(); track entry.key) {
-          <div class="pc-slot fainted-slot">
-            <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
-          </div>
-        } @empty {
-          <p class="empty-message">No fainted Pokémon yet.</p>
-        }
-      </div>
-    }
-
-    @if (!faintedCollapsed()) {
+    @if (!pcCollapsed() && pcView() === 'fainted') {
       <div
         class="fainted"
         cdkDropList
@@ -367,7 +346,6 @@
           <div
             class="pc-slot fainted-slot"
             cdkDrag
-            (cdkDragEnded)="endDrag()"
             [cdkDragData]="entry"
             title="Double-click to send back to the PC"
             (dblclick)="revive(entry)"
@@ -377,7 +355,8 @@
           </div>
         } @empty {
           <p class="empty-message">
-            Drag a Pokémon here when it faints. Double-click it to send it back to the PC.
+            Drag a Pokémon here or on the Fainted tab when it faints. Double-click it to send it
+            back to the PC.
           </p>
         }
       </div>

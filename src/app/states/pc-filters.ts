@@ -1,7 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 
 const PC_COLLAPSED_KEY = 'king_shield_pc_collapsed';
-const FAINTED_COLLAPSED_KEY = 'king_shield_fainted_collapsed';
+
+/** Tabs of the PC panel */
+export type PcView = 'pc' | 'fainted';
 
 function readFlag(key: string): boolean {
   try {
@@ -27,8 +29,7 @@ export class PcFiltersState {
 
   readonly pcCollapsed = signal(readFlag(PC_COLLAPSED_KEY));
 
-  /** Fainted box folded; remembered between visits */
-  readonly faintedCollapsed = signal(readFlag(FAINTED_COLLAPSED_KEY));
+  readonly pcView = signal<PcView>('pc');
 
   readonly revealRequest = signal(0);
 
@@ -37,9 +38,9 @@ export class PcFiltersState {
     writeFlag(PC_COLLAPSED_KEY, collapsed);
   }
 
-  toggleFainted(): void {
-    this.faintedCollapsed.update((c) => !c);
-    writeFlag(FAINTED_COLLAPSED_KEY, this.faintedCollapsed());
+  showView(view: PcView): void {
+    this.pcView.set(view);
+    if (this.pcCollapsed()) this.setPcCollapsed(false);
   }
 
   togglePc(): void {
@@ -48,7 +49,7 @@ export class PcFiltersState {
 
   showEffectiveAgainst(type: string): void {
     this.effectiveAgainst.set(type);
-    if (this.pcCollapsed()) this.setPcCollapsed(false);
+    this.showView('pc');
     this.revealRequest.update((n) => n + 1);
   }
 }
