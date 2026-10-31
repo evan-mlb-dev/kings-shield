@@ -43,6 +43,15 @@
               <div class="score-text">
                 <span class="score-label">{{ score.label }}</span>
                 <span class="score-grade">{{ score.grade }}</span>
+                @if (score.delta !== null) {
+                  <span
+                    class="sl-delta"
+                    [class.up]="score.delta > 0"
+                    [class.down]="score.delta < 0"
+                    title="With the previewed pick"
+                    >{{ score.delta > 0 ? '+' : '' }}{{ score.delta }}</span
+                  >
+                }
               </div>
             </div>
           }
@@ -180,7 +189,16 @@
                     {{ tab() === 'defensive' ? 'Attacking type' : 'Defending type' }}
                   </th>
                   @for (member of members(); track member.key) {
-                    <th class="member-col" scope="col" [title]="member.mon.nickname">
+                    <th
+                      class="member-col"
+                      scope="col"
+                      [class.sl-preview]="member.key === preview()?.key"
+                      [title]="
+                        member.key === preview()?.key
+                          ? member.mon.nickname + ' (preview: not picked yet)'
+                          : member.mon.nickname
+                      "
+                    >
                       <app-pokemon-sprite
                         [speciesId]="member.mon.speciesId"
                         [name]="member.mon.speciesName"
@@ -214,11 +232,12 @@
                         <app-type-icon [name]="row.type.name" />
                       </button>
                     </th>
-                    @for (cell of row.cells; track $index) {
+                    @for (cell of row.cells; track $index; let last = $last) {
                       <td
                         class="cell"
                         [class]="cell.tone"
                         [class.fraction]="cell.label === '½' || cell.label === '¼'"
+                        [class.sl-preview]="last && !!preview()"
                         [title]="cell.title"
                       >
                         {{ cell.label }}

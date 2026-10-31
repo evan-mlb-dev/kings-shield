@@ -1,0 +1,241 @@
+<section class="soul-link-page">
+  <header class="page-head">
+    <h1>Soul Link</h1>
+    <p class="subtitle">
+      Play a Nuzlocke with a friend: Pokémon met at the same place are linked, and you build your
+      teams together.
+    </p>
+    <label class="switch">
+      <input
+        type="checkbox"
+        [checked]="soulLink.enabled()"
+        (change)="soulLink.setEnabled($any($event.target).checked)"
+      />
+      <span class="switch-track" aria-hidden="true"></span>
+      Enable Soul Link
+    </label>
+  </header>
+
+  @if (soulLink.enabled()) {
+    <article class="panel connection">
+      @switch (soulLink.status()) {
+        @case ('idle') {
+          <div class="connect-options">
+            <div class="connect-option">
+              <h2>Host a room</h2>
+              <p class="hint">Get a code and send it to the other player.</p>
+              <button type="button" class="primary-button" (click)="soulLink.host()">
+                Create a room
+              </button>
+            </div>
+            <span class="or">or</span>
+            <form class="connect-option" (submit)="$event.preventDefault(); join()">
+              <h2>Join a room</h2>
+              <p class="hint">Enter the code the other player gave you.</p>
+              <div class="join-row">
+                <input
+                  class="text-input code-input"
+                  type="text"
+                  maxlength="6"
+                  placeholder="CODE"
+                  aria-label="Room code"
+                  autocomplete="off"
+                  [value]="joinCode()"
+                  (input)="joinCode.set($any($event.target).value)"
+                />
+                <button type="submit" class="primary-button" [disabled]="!joinCode().trim()">
+                  Join
+                </button>
+              </div>
+            </form>
+          </div>
+        }
+        @case ('waiting') {
+          <div class="status-row">
+            <span class="status-dot waiting" aria-hidden="true"></span>
+            <p>Waiting for the other player. Room code:</p>
+            <button type="button" class="room-code" title="Copy the code" (click)="copyCode()">
+              {{ soulLink.roomCode() }}
+            </button>
+            <span class="hint" role="status">{{ copied() ? 'Copied!' : '' }}</span>
+            <button type="button" class="ghost-button" (click)="soulLink.disconnect()">
+              Close the room
+            </button>
+          </div>
+        }
+        @case ('connected') {
+          <div class="status-row">
+            <span class="status-dot connected" aria-hidden="true"></span>
+            <p>
+              Linked with <b>{{ partnerName() }}</b>
+              <span class="hint">· room {{ soulLink.roomCode() }}</span>
+            </p>
+            <p class="body-count" title="Pokémon each player caused to faint">
+              Body count: you <b>{{ soulLink.bodyCount().mine }}</b> · {{ partnerName() }}
+              <b>{{ soulLink.bodyCount().theirs }}</b>
+            </p>
+            <app-end-run />
+            <button
+              type="button"
+              class="ghost-button"
+              title="Forget every recorded death, for both players"
+              [disabled]="soulLink.deaths().length === 0"
+              (click)="soulLink.resetDeaths()"
+            >
+              Reset body count
+            </button>
+            <p class="hint push">
+              Your PCs are side by side in the Team Building tab, where the champ select happens.
+            </p>
+            <button type="button" class="ghost-button" (click)="soulLink.disconnect()">
+              Disconnect
+            </button>
+          </div>
+        }
+        @default {
+          <div class="status-row">
+            <span class="status-dot waiting" aria-hidden="true"></span>
+            <p>Connecting…</p>
+            <button type="button" class="ghost-button" (click)="soulLink.disconnect()">
+              Cancel
+            </button>
+          </div>
+        }
+      }
+      @if (soulLink.error(); as error) {
+        <p class="error" role="alert">{{ error }}</p>
+      }
+      @if (!gameState.pkmnData()) {
+        <p class="hint">Load your save file first, so the other player can see your Pokémon.</p>
+      }
+    </article>
+
+    @if (soulLink.status() === 'connected') {
+      <article class="panel">
+        <header class="panel-head">
+          <h2>
+            Links <span class="count">{{ pairs().length }}</span>
+          </h2>
+          <button
+            type="button"
+            class="ghost-button"
+            title="Forget every manual change"
+            (click)="soulLink.resetLinks()"
+          >
+            Reset links
+          </button>
+        </header>
+        <p class="hint">
+          Pokémon met at the same place are linked automatically. Undo a wrong pair with ×, and link
+          the others by hand below.
+        </p>
+        <ul class="pairs">
+          @for (view of pairs(); track view.key) {
+            <li class="pair" [class.manual]="view.pair.manual">
+              <div class="pair-row">
+                @for (side of [view.mine, view.theirs]; track side.key; let last = $last) {
+                  <span
+                    class="pair-mon"
+                    [class.fainted]="isFainted(side, last ? 'theirs' : 'mine')"
+                    [title]="side.mon.nickname + ' (' + side.mon.speciesName + ')'"
+                  >
+                    <app-pokemon-sprite
+                      [speciesId]="side.mon.speciesId"
+                      [name]="side.mon.speciesName"
+                    />
+                    <span class="mon-name">{{ side.mon.nickname }}</span>
+                  </span>
+                  @if (!last) {
+                    <svg class="chain" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  }
+                }
+              </div>
+              <p class="pair-foot">
+                {{ view.mine.location }}
+                @if (view.pair.manual) {
+                  <span class="pair-tag">manual</span>
+                }
+              </p>
+              <button
+                type="button"
+                class="unlink-button"
+                title="Undo this link"
+                aria-label="Undo this link"
+                (click)="soulLink.unlink(view.pair)"
+              >
+                ×
+              </button>
+            </li>
+          } @empty {
+            <li class="hint">No linked Pokémon yet.</li>
+          }
+        </ul>
+      </article>
+
+      <article class="panel">
+        <header class="panel-head">
+          <h2>Not linked</h2>
+        </header>
+        <p class="hint">
+          Select one of your Pokémon and one of {{ partnerName() }}'s to link them.
+        </p>
+        <div class="unlinked">
+          @for (
+            side of [
+              { label: 'Your PC', mons: unlinkedMine(), key: 'mine' },
+              { label: partnerName() + "'s PC", mons: unlinkedTheirs(), key: 'theirs' },
+            ];
+            track side.key
+          ) {
+            <div class="unlinked-side">
+              <h3>
+                {{ side.label }} <span class="count">{{ side.mons.length }}</span>
+              </h3>
+              <ul class="mon-grid">
+                @for (m of side.mons; track m.key) {
+                  <li>
+                    <button
+                      type="button"
+                      class="mon-chip"
+                      [class.selected]="
+                        (side.key === 'mine' ? selectedMine() : selectedTheirs())?.key === m.key
+                      "
+                      [class.fainted]="isFainted(m, $any(side.key))"
+                      [title]="m.mon.nickname + ' · ' + m.location"
+                      (click)="side.key === 'mine' ? selectMine(m) : selectTheirs(m)"
+                    >
+                      <app-pokemon-sprite
+                        [speciesId]="m.mon.speciesId"
+                        [name]="m.mon.speciesName"
+                      />
+                      <span class="mon-name">{{ m.mon.nickname }}</span>
+                      <span class="mon-location">{{ m.location }}</span>
+                    </button>
+                  </li>
+                } @empty {
+                  <li class="hint">Everything is linked.</li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      </article>
+    }
+  } @else {
+    <article class="panel">
+      <p class="hint">
+        Turn on Soul Link to connect with another player. The connection is peer to peer: a public
+        server only introduces your browsers to each other, then your Pokémon go straight to the
+        other player.
+      </p>
+    </article>
+  }
+</section>

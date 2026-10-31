@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Save files used for local tests (personal data, never committed)
+test-data/
+*.sav

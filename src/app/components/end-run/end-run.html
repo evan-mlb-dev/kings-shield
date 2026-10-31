@@ -1,0 +1,46 @@
+<div class="end-run">
+  @if (soulLink.runEnded()) {
+    <button
+      type="button"
+      class="new-run-button"
+      title="Start a new run for both players"
+      (click)="soulLink.newRun()"
+    >
+      New run
+    </button>
+  } @else {
+    <button
+      type="button"
+      class="end-run-button"
+      [class.alert]="!!soulLink.wipedOut()"
+      [attr.aria-expanded]="open()"
+      (click)="open.set(!open())"
+    >
+      End run
+    </button>
+
+    @if (open()) {
+      <div class="popover" role="dialog" aria-label="End the run">
+        <p class="question">Who wiped out?</p>
+        <p class="hint">
+          Their team faints, with the linked Pokémon, and counts in their body count. The run is
+          saved to the History and reset for both players.
+        </p>
+        <div class="answers">
+          <button type="button" class="answer" (click)="end('mine')">
+            {{ myName() }}
+            <span class="detail">+{{ myAlive() }} body count</span>
+          </button>
+          <button type="button" class="answer" (click)="end('theirs')">
+            {{ partnerName() }}
+            <span class="detail">+{{ partnerAlive() }} body count</span>
+          </button>
+        </div>
+        <div class="footer">
+          <button type="button" class="link" (click)="end(null)">End without a wipe</button>
+          <button type="button" class="link" (click)="open.set(false)">Cancel</button>
+        </div>
+      </div>
+    }
+  }
+</div>

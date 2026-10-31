@@ -7,6 +7,7 @@ import { defensiveScore, offensiveScore, scoreLabel } from '../../shared/coverag
 import { TYPE_ORDER } from '../../shared/type-order';
 import { GameStateService, pokemonKey } from '../../states/game-state';
 import { PcFiltersState } from '../../states/pc-filters';
+import { SoulLinkService } from '../../states/soul-link';
 
 export type CoverageTab = 'defensive' | 'offensive';
 
@@ -79,9 +80,37 @@ export class Coverage {
     (t): t is PokemonType => !!t,
   );
 
-  protected readonly members = computed<Member[]>(() =>
+  private readonly soulLink = inject(SoulLinkService);
+
+  private readonly teamMembers = computed<Member[]>(() =>
     this.gameState.team().map((p) => ({ key: pokemonKey(p), mon: Pokemon.fromParsed(p, this.db) })),
   );
+
+  protected readonly preview = computed<Member | null>(() => {
+    const pair = this.soulLink.active() ? this.soulLink.previewPair() : null;
+    return pair
+      ? { key: pokemonKey(pair.mine), mon: Pokemon.fromParsed(pair.mine, this.db) }
+      : null;
+  });
+
+  /** Coverage columns: the team, plus the previewed pick */
+  protected readonly members = computed<Member[]>(() => {
+    const preview = this.preview();
+    return preview ? [...this.teamMembers(), preview] : this.teamMembers();
+  });
+
+  private readonly baseScores = computed(() => {
+    const mons = this.teamMembers().map((m) => m.mon);
+    if (mons.length === 0) return { defense: 0, offense: 0 };
+    return {
+      defense: defensiveScore(
+        this.types.map((t) => mons.map((mon) => defensiveCell(t, mon).multiplier ?? 1)),
+      ),
+      offense: offensiveScore(
+        this.types.map((t) => mons.map((mon) => offensiveCell(t, mon).multiplier)),
+      ),
+    };
+  });
 
   protected readonly defensiveRows = computed<Row[]>(() =>
     this.types.map((attacker) => {
@@ -126,11 +155,14 @@ export class Coverage {
     const offense = offensiveScore(
       this.offensiveRows().map((r) => r.cells.map((c) => c.multiplier)),
     );
+    const base = this.baseScores();
+    const preview = !!this.preview();
     return [
       {
         key: 'defense',
         label: 'Defense',
         value: defense,
+        delta: preview ? defense - base.defense : null,
         grade: scoreLabel(defense),
         help: 'How well the team takes hits from each type: a good switch-in and few weak members',
       },
@@ -138,6 +170,7 @@ export class Coverage {
         key: 'offense',
         label: 'Offense',
         value: offense,
+        delta: preview ? offense - base.offense : null,
         grade: scoreLabel(offense),
         help: 'How well the team hits each type with its moves: super effective, by several members',
       },

@@ -1,0 +1,167 @@
+<article class="run">
+  <header class="run-head">
+    @if (renaming()) {
+      <form class="rename-form" (submit)="$event.preventDefault(); confirmRename()">
+        <input
+          class="text-input"
+          type="text"
+          maxlength="40"
+          aria-label="Run name"
+          [value]="draftName()"
+          (input)="draftName.set($any($event.target).value)"
+          (keydown.escape)="renaming.set(false)"
+        />
+        <button type="submit" class="primary-button">Rename</button>
+        <button type="button" class="ghost-button" (click)="renaming.set(false)">Cancel</button>
+      </form>
+    } @else {
+      <h2 class="run-name">{{ run().name }}</h2>
+      <span class="run-meta">
+        {{ run().myName }} & {{ run().partnerName }} · {{ run().endedAt | date: 'MMM d, y' }} ·
+        {{ duration() }}
+      </span>
+    }
+    @if (run().wipedOut; as side) {
+      <span class="wipe-tag"
+        >☠ {{ side === 'mine' ? run().myName : run().partnerName }} wiped out</span
+      >
+    }
+    <div class="actions">
+      <button type="button" class="ghost-button" (click)="startRename()">Rename</button>
+      <button
+        type="button"
+        class="ghost-button danger"
+        [class.confirm]="confirmDelete()"
+        (click)="delete()"
+        (blur)="confirmDelete.set(false)"
+      >
+        {{ confirmDelete() ? 'Click again to delete' : 'Delete' }}
+      </button>
+    </div>
+  </header>
+
+  <div class="score-board" aria-label="Body count">
+    <div class="player mine">
+      <span class="player-name">{{ run().myName }}</span>
+      <span class="kills"
+        ><b>{{ bodyCount().mine }}</b> body count</span
+      >
+    </div>
+    <span class="versus">{{ run().deaths.length }} deaths</span>
+    <div class="player theirs">
+      <span class="player-name">{{ run().partnerName }}</span>
+      <span class="kills"
+        ><b>{{ bodyCount().theirs }}</b> body count</span
+      >
+    </div>
+  </div>
+
+  <ol class="timeline">
+    <li class="event milestone">
+      <span class="node" aria-hidden="true"></span>
+      <span class="milestone-label">Start · {{ run().startedAt | date: 'MMM d, HH:mm' }}</span>
+    </li>
+
+    @for (death of deaths(); track death.index) {
+      <li class="event death" [class.blame-mine]="death.blame === 'mine'">
+        <div class="side left">
+          @if (death.mine; as mon) {
+            <div class="mon" [title]="mon.name + ' (' + mon.speciesName + ')'">
+              <app-pokemon-sprite [speciesId]="mon.speciesId" [name]="mon.speciesName" />
+              <span class="mon-text">
+                <span class="mon-name">{{ mon.name }}</span>
+                @if (mon.name !== mon.speciesName) {
+                  <span class="mon-species">{{ mon.speciesName }}</span>
+                }
+                @if (mon.level) {
+                  <span class="mon-level">Lv {{ mon.level }}</span>
+                }
+              </span>
+              @if (death.blame === 'mine') {
+                <span
+                  class="culprit"
+                  [title]="'Caused by ' + run().myName"
+                  aria-label="Caused this death"
+                  ><app-skull-icon
+                /></span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="center">
+          <span class="node" aria-hidden="true"><app-skull-icon /></span>
+          <span class="when">
+            @if (death.at !== null) {
+              {{ death.at | date: 'HH:mm' }}
+              <span class="elapsed">+{{ death.elapsed }}</span>
+            } @else {
+              #{{ death.index + 1 }}
+            }
+          </span>
+          <span class="blame">
+            because of {{ death.blame === 'mine' ? run().myName : run().partnerName }}
+          </span>
+        </div>
+
+        <div class="side right">
+          @if (death.theirs; as mon) {
+            <div class="mon" [title]="mon.name + ' (' + mon.speciesName + ')'">
+              <app-pokemon-sprite [speciesId]="mon.speciesId" [name]="mon.speciesName" />
+              <span class="mon-text">
+                <span class="mon-name">{{ mon.name }}</span>
+                @if (mon.name !== mon.speciesName) {
+                  <span class="mon-species">{{ mon.speciesName }}</span>
+                }
+                @if (mon.level) {
+                  <span class="mon-level">Lv {{ mon.level }}</span>
+                }
+              </span>
+              @if (death.blame === 'theirs') {
+                <span
+                  class="culprit"
+                  [title]="'Caused by ' + run().partnerName"
+                  aria-label="Caused this death"
+                  ><app-skull-icon
+                /></span>
+              }
+            </div>
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="event milestone">
+        <span class="milestone-label muted">No death in this run.</span>
+      </li>
+    }
+
+    <li class="event milestone end">
+      <span class="node" aria-hidden="true"></span>
+      <span class="milestone-label">
+        {{ run().wipedOut ? 'Wiped out' : 'Run ended' }} ·
+        {{ run().endedAt | date: 'MMM d, HH:mm' }}
+      </span>
+    </li>
+  </ol>
+
+  @if (myTeam().length || partnerTeam().length) {
+    <div class="final-teams">
+      @for (side of [myTeam(), partnerTeam()]; track $index) {
+        <div class="final-team">
+          <span class="final-label"
+            >{{ $index === 0 ? run().myName : run().partnerName }}'s last team</span
+          >
+          <ul>
+            @for (mon of side; track $index) {
+              <li [title]="mon.name">
+                <app-pokemon-sprite [speciesId]="mon.speciesId" [name]="mon.speciesName" />
+              </li>
+            } @empty {
+              <li class="muted">Empty</li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  }
+</article>

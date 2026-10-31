@@ -1,0 +1,134 @@
+.filters {
+  display: grid;
+  grid-template-columns: auto 1fr;
+
+  gap: 8px 20px;
+  align-items: center;
+  min-width: 0;
+}
+
+.filter-label {
+  font-size: 0.7rem;
+  text-align: left;
+  white-space: nowrap;
+  opacity: 0.6;
+}
+
+.type-filters {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+
+.type-chip {
+  --chip-color: #777;
+
+  display: flex;
+  min-width: 0;
+  padding: 2px;
+  cursor: pointer;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  opacity: 0.45;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &.selected {
+    background: color-mix(in srgb, var(--chip-color) 25%, transparent);
+    border-color: var(--chip-color);
+    opacity: 1;
+  }
+
+  app-type-icon {
+    width: 100%;
+  }
+
+  app-type-icon ::ng-deep img {
+    width: 100%;
+    height: auto;
+  }
+}
+
+.sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.sort-button {
+  position: relative;
+  min-width: 44px;
+  padding: 4px 14px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  color: white;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-card);
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 6px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--primary-color);
+  }
+
+  &.selected {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+}
+
+.sort > .sort-button:first-child {
+  margin-right: 12px;
+}
+
+.sort-dir {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  width: 0.8em;
+  text-align: center;
+  transform: translateY(-50%);
+}
+
+.clear-button {
+  visibility: hidden;
+  padding: 4px 10px;
+
+  margin-left: 12px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  color: #ff8a84;
+  cursor: pointer;
+  background: rgb(194 46 40 / 15%);
+  border: 1px solid rgb(194 46 40 / 60%);
+  border-radius: 6px;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+
+  &.visible {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  &:hover {
+    color: white;
+    background: #c22e28;
+    border-color: #c22e28;
+  }
+}

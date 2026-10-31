@@ -1,0 +1,62 @@
+<div class="filters">
+  <span class="filter-label">Type</span>
+  <div class="type-filters" role="group" aria-label="Filter by type">
+    @for (name of filter().typeNames; track name) {
+      <button
+        type="button"
+        class="type-chip"
+        [class.selected]="filter().isTypeSelected(name)"
+        [style.--chip-color]="typeColor(name)"
+        [attr.aria-pressed]="filter().isTypeSelected(name)"
+        (click)="filter().toggleType(name)"
+      >
+        <app-type-icon [name]="name" />
+      </button>
+    }
+  </div>
+
+  <span class="filter-label">Effective vs</span>
+  <div class="type-filters" role="group" aria-label="Effective against a type">
+    @for (name of filter().typeNames; track name) {
+      <button
+        type="button"
+        class="type-chip"
+        [class.selected]="filter().effectiveAgainst() === name"
+        [style.--chip-color]="typeColor(name)"
+        [attr.aria-pressed]="filter().effectiveAgainst() === name"
+        [title]="'Pokémon effective against ' + name"
+        (click)="filter().toggleEffectiveAgainst(name)"
+      >
+        <app-type-icon [name]="name" />
+      </button>
+    }
+  </div>
+
+  <span class="filter-label">Sort</span>
+  <div class="sort" role="group" aria-label="Sort by tier or base stat">
+    @for (option of filter().sortOptions; track option.key) {
+      <button
+        type="button"
+        class="sort-button"
+        [class.selected]="filter().sortKey() === option.key"
+        [attr.aria-pressed]="filter().sortKey() === option.key"
+        (click)="filter().setSort(option.key)"
+      >
+        {{ option.label }}
+        <span class="sort-dir" aria-hidden="true">{{
+          filter().sortKey() === option.key ? (filter().sortDescending() ? '↓' : '↑') : ''
+        }}</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="clear-button"
+      [class.visible]="filter().hasFilters()"
+      [disabled]="!filter().hasFilters()"
+      [attr.aria-hidden]="!filter().hasFilters()"
+      (click)="filter().clearFilters()"
+    >
+      Clear
+    </button>
+  </div>
+</div>

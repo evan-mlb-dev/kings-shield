@@ -1,0 +1,94 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgb(0 0 0 / 60%);
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: min(380px, calc(100vw - 32px));
+  padding: 20px;
+  text-align: center;
+  background: var(--bg-dark, #151515);
+  border: 1px solid rgb(229 72 62 / 55%);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 60%);
+  transform: translate(-50%, -50%);
+}
+
+.mons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  app-pokemon-sprite {
+    filter: grayscale(1) brightness(0.8);
+  }
+}
+
+.chain {
+  width: 20px;
+  height: 20px;
+  color: #e5483e;
+}
+
+h2 {
+  font-size: 1.1rem;
+}
+
+.text {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.muted {
+  opacity: 0.6;
+}
+
+.answers {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.blame {
+  flex: 1;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: white;
+  cursor: pointer;
+  background: rgb(194 46 40 / 18%);
+  border: 1px solid rgb(229 72 62 / 60%);
+  border-radius: 10px;
+
+  &:hover,
+  &:focus-visible {
+    background: #c22e28;
+    border-color: #c22e28;
+    outline: none;
+  }
+}
+
+.cancel {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.7rem;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}

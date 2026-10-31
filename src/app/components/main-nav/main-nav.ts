@@ -4,7 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 interface NavTab {
   path: string;
   label: string;
-  icon: 'team' | 'chart' | 'history';
+  icon: 'team' | 'chart' | 'history' | 'link' | 'edit';
 }
 
 @Component({
@@ -17,6 +17,8 @@ export class MainNav {
   protected readonly tabs: readonly NavTab[] = [
     { path: '/team-building', label: 'Team Building', icon: 'team' },
     { path: '/type-chart', label: 'Type Chart', icon: 'chart' },
+    { path: '/soul-link', label: 'Soul Link', icon: 'link' },
+    { path: '/save-editor', label: 'Save Editor', icon: 'edit' },
     { path: '/history', label: 'History', icon: 'history' },
   ];
 }

@@ -1,0 +1,18 @@
+@if (filter().matchupBadges().get(entry().key); as badges) {
+  <ul class="matchup-badges">
+    @for (badge of badges; track badge.label) {
+      <li class="matchup-badge" [class]="badge.kind" [title]="badge.title">
+        {{ badge.label }}
+      </li>
+    }
+  </ul>
+}
+@if (filter().sortKey(); as key) {
+  @let value = filter().statOf(entry().mon, key);
+  <span
+    class="stat-badge"
+    [class.excellent]="filter().isExcellentStat(value, key)"
+    [style.--stat-hue]="filter().statHue(value, key)"
+    >{{ filter().badgeLabel(entry().mon, key) }}</span
+  >
+}

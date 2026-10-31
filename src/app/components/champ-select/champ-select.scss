@@ -1,0 +1,141 @@
+.champ-select {
+  max-width: 1440px;
+  padding: 20px 20px 0;
+  margin: 0 auto;
+}
+
+.wipe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  background: linear-gradient(90deg, rgb(194 46 40 / 35%), rgb(60 0 0 / 30%));
+  border: 1px solid rgb(229 72 62 / 70%);
+  border-radius: 16px;
+
+  p {
+    flex: 1;
+  }
+}
+
+.wipe-icon {
+  font-size: 1.4rem;
+}
+
+.wipe-hint {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.end-run-slot {
+  padding-left: 16px;
+  border-left: 1px solid rgb(255 255 255 / 12%);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgb(255 255 255 / 3%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 16px;
+
+  &.drafting {
+    border-color: rgb(240 213 140 / 45%);
+  }
+
+  h2 {
+    font-size: 1.05rem;
+  }
+}
+
+.body-count {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 12px;
+  margin-right: 8px;
+  font-size: 0.75rem;
+  background: rgb(194 46 40 / 12%);
+  border: 1px solid rgb(229 72 62 / 40%);
+  border-radius: 999px;
+
+  .label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  b {
+    margin-left: 2px;
+    color: #ff8a82;
+  }
+}
+
+.hint,
+.turn {
+  flex: 1;
+  font-size: 0.75rem;
+}
+
+.hint {
+  opacity: 0.6;
+}
+
+.turn.mine {
+  font-weight: 600;
+  color: #f0d58c;
+}
+
+.ghost-button {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.75rem;
+  color: white;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 8px;
+
+  &:hover {
+    border-color: var(--primary-color);
+  }
+}
+
+.end-draft {
+  padding: 7px 16px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f0d58c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  cursor: pointer;
+  background: rgb(240 213 140 / 12%);
+  border: 1px solid rgb(240 213 140 / 75%);
+  border-radius: 8px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover,
+  &.done {
+    color: #1a1a2e;
+    background: #f0d58c;
+  }
+
+  &.done {
+    box-shadow: 0 0 14px rgb(240 213 140 / 60%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #f0d58c;
+    outline-offset: 2px;
+  }
+}

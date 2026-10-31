@@ -1,0 +1,61 @@
+@if (soulLink.active()) {
+  <section class="champ-select">
+    @if (soulLink.wipedOut(); as side) {
+      <div class="wipe" role="alert">
+        <span class="wipe-icon" aria-hidden="true">☠</span>
+        <p>
+          <b>{{ side === 'mine' ? 'You are' : partnerName() + ' is' }} wiped out.</b>
+        </p>
+        <span class="wipe-hint">Click “End run” and pick who wiped out.</span>
+      </div>
+    }
+    <div class="bar" [class.drafting]="!!soulLink.draft()">
+      <div class="body-count" title="Pokémon each player caused to faint">
+        <span class="label">Body count</span>
+        <span class="player"
+          >{{ myName() }} <b>{{ soulLink.bodyCount().mine }}</b></span
+        >
+        <span class="player"
+          >{{ partnerName() }} <b>{{ soulLink.bodyCount().theirs }}</b></span
+        >
+      </div>
+      <h2>Champ select</h2>
+      @if (soulLink.draft(); as draft) {
+        <p class="turn" [class.mine]="draft.myTurn && !done()" role="status">
+          @if (done()) {
+            Champ select complete
+          } @else if (draft.myTurn) {
+            Your pick: double-click a highlighted Pokémon in your PC or {{ partnerName() }}'s
+          } @else {
+            {{ partnerName() }} is picking…
+          }
+        </p>
+        <button
+          type="button"
+          class="end-draft"
+          [class.done]="done()"
+          [title]="
+            done() ? 'Close the champ select' : 'Stop the champ select now, for both players'
+          "
+          (click)="soulLink.endDraft()"
+        >
+          End champ select
+        </button>
+      } @else {
+        <p class="hint">
+          Both teams are emptied, then you each pick a linked pair in turn (you start), up to
+          {{ maxTeamSize }} pairs.
+        </p>
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="soulLink.pairs().length === 0"
+          (click)="soulLink.startDraft()"
+        >
+          Start champ select
+        </button>
+      }
+      <app-end-run class="end-run-slot" />
+    </div>
+  </section>
+}

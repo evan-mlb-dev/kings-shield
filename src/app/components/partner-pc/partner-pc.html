@@ -1,0 +1,126 @@
+@if (soulLink.active()) {
+  <section class="partner-pc">
+    <div class="panel">
+      <header class="panel-head" [class.collapsed]="collapsed()">
+        <h2>
+          <button
+            type="button"
+            class="collapse-toggle"
+            [attr.aria-expanded]="!collapsed()"
+            aria-controls="partner-pc-content"
+            [title]="collapsed() ? 'Expand the PC' : 'Collapse the PC'"
+            (click)="toggle()"
+          >
+            <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M6 9l6 6 6-6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            {{ partnerName() }}'s PC <span class="count">{{ filter.visible().length }}</span>
+          </button>
+        </h2>
+        @if (!collapsed()) {
+          <app-pc-filters [filter]="filter" />
+        }
+      </header>
+
+      @if (!collapsed()) {
+        <div id="partner-pc-content">
+          <div class="partner-team" aria-label="Team">
+            <span class="label">Team</span>
+            <ul class="team-slots">
+              @for (slot of team(); track slot?.key ?? 'empty-' + $index) {
+                <li
+                  class="team-slot"
+                  [class.empty]="!slot"
+                  [class.sl-highlight]="!!slot && soulLink.highlightedTheirs() === slot.key"
+                  (mouseenter)="slot && soulLink.hover('theirs', slot.parsed)"
+                  (mouseleave)="soulLink.unhover()"
+                >
+                  @if (slot) {
+                    <app-pokemon-sprite
+                      [speciesId]="slot.mon.speciesId"
+                      [name]="slot.mon.nickname"
+                    />
+                  }
+                </li>
+              }
+            </ul>
+            @if (scores().length) {
+              <div class="scores">
+                @for (score of scores(); track score.label) {
+                  <span
+                    class="score"
+                    [style.--hue]="scoreHue(score.value)"
+                    [title]="score.label + ' coverage: ' + score.grade"
+                  >
+                    {{ score.label }} <b>{{ score.value }}</b> · {{ score.grade }}
+                    @if (score.delta !== null) {
+                      <span
+                        class="sl-delta"
+                        [class.up]="score.delta > 0"
+                        [class.down]="score.delta < 0"
+                        >{{ score.delta > 0 ? '+' : '' }}{{ score.delta }}</span
+                      >
+                    }
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="box">
+            <div class="toolbar">
+              <app-pc-search [filter]="filter" />
+              <p class="hint">Hover one of your Pokémon to find its linked Pokémon here.</p>
+              <app-pc-score [mons]="availableMons()" />
+            </div>
+            <div class="grid" #grid>
+              @for (entry of filter.visible(); track entry.key) {
+                <div
+                  class="slot"
+                  [attr.data-key]="entry.key"
+                  [class.fainted]="entry.fainted"
+                  [class.sl-highlight]="soulLink.highlightedTheirs() === entry.key"
+                  [class.sl-dim]="!!soulLink.draft() && !soulLink.pickableTheirs().has(entry.key)"
+                  [class.sl-pickable]="
+                    !!soulLink.draft()?.myTurn && soulLink.pickableTheirs().has(entry.key)
+                  "
+                  [title]="slotTitle(entry)"
+                  (mouseenter)="soulLink.hover('theirs', entry.parsed)"
+                  (mouseleave)="soulLink.unhover()"
+                  (dblclick)="pick(entry)"
+                >
+                  <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
+                  <app-pc-badges [filter]="filter" [entry]="entry" />
+                </div>
+              } @empty {
+                <p class="hint">
+                  @if (!soulLink.partnerSave()) {
+                    {{ partnerName() }} has not loaded a save yet.
+                  } @else if (filter.hasFilters()) {
+                    No Pokémon matches these filters.
+                  } @else {
+                    {{ partnerName() }}'s PC is empty.
+                  }
+                </p>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+} @else if (soulLink.enabled()) {
+  <section class="partner-pc">
+    <p class="panel offline">
+      Soul Link is on, but you are not connected to another player.
+      <a routerLink="/soul-link">Connect</a>
+    </p>
+  </section>
+}

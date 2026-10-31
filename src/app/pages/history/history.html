@@ -1,81 +1,14 @@
 <section class="history-page">
   <header class="page-head">
     <h1>History</h1>
-    <p class="subtitle">Teams saved from the team builder. Load one to edit it again.</p>
+    <p class="subtitle">Finished Soul Link runs, with every death on a timeline.</p>
   </header>
 
-  @for (entry of entries(); track entry.team.id) {
-    <article class="saved-team">
-      <header class="team-head">
-        @if (renamingId() === entry.team.id) {
-          <form class="rename-form" (submit)="$event.preventDefault(); confirmRename(entry.team)">
-            <input
-              class="text-input"
-              type="text"
-              maxlength="40"
-              aria-label="Team name"
-              [value]="draftName()"
-              (input)="draftName.set($any($event.target).value)"
-              (keydown.escape)="renamingId.set(null)"
-            />
-            <button type="submit" class="primary-button">Rename</button>
-            <button type="button" class="ghost-button" (click)="renamingId.set(null)">
-              Cancel
-            </button>
-          </form>
-        } @else {
-          <h2 class="team-name">{{ entry.team.name }}</h2>
-          <span class="team-meta">
-            {{ entry.team.createdAt | date: 'MMM d, y · HH:mm' }}
-            @if (entry.team.saveName) {
-              · {{ entry.team.saveName }}
-            }
-          </span>
-        }
-
-        <div class="scores">
-          @for (score of entry.scores; track score.label) {
-            <span class="score" [style.--hue]="scoreHue(score.value)" [title]="score.grade">
-              {{ score.label }} <b>{{ score.value }}</b>
-            </span>
-          }
-        </div>
-      </header>
-
-      <ul class="members">
-        @for (member of entry.members; track member.key) {
-          <li class="member" [title]="member.mon.nickname + ' (' + member.mon.speciesName + ')'">
-            <app-pokemon-sprite
-              [speciesId]="member.mon.speciesId"
-              [name]="member.mon.speciesName"
-            />
-            <span class="member-name">{{ member.mon.nickname }}</span>
-            <span class="member-types">
-              @for (t of member.mon.types; track t.id) {
-                <app-type-icon [name]="t.name" variant="square" />
-              }
-            </span>
-          </li>
-        }
-      </ul>
-
-      <footer class="team-actions">
-        <button type="button" class="primary-button" (click)="load(entry.team)">Load</button>
-        <button type="button" class="ghost-button" (click)="startRename(entry.team)">Rename</button>
-        <button
-          type="button"
-          class="ghost-button danger"
-          [class.confirm]="confirmDeleteId() === entry.team.id"
-          (click)="delete(entry.team)"
-          (blur)="confirmDeleteId.set(null)"
-        >
-          {{ confirmDeleteId() === entry.team.id ? 'Click again to delete' : 'Delete' }}
-        </button>
-      </footer>
-    </article>
+  @for (run of runs(); track run.id) {
+    <app-run-timeline [run]="run" />
   } @empty {
     <p class="empty">
-      No saved team yet. Build a team, then click “Save team” in the team builder.
+      No finished run yet. When a Soul Link run is over, click “End run” to keep it here.
     </p>
   }
 </section>

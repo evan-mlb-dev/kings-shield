@@ -1,0 +1,46 @@
+@if (mon(); as mon) {
+  <div class="backdrop" (click)="soulLink.cancelFaint()"></div>
+  <div
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="faint-dialog-title"
+    aria-describedby="faint-dialog-text"
+  >
+    <div class="mons">
+      <app-pokemon-sprite [speciesId]="mon.speciesId" [name]="mon.speciesName" />
+      @if (partner(); as partner) {
+        <svg class="chain" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+        <app-pokemon-sprite [speciesId]="partner.speciesId" [name]="partner.speciesName" />
+      }
+    </div>
+
+    <h2 id="faint-dialog-title">{{ mon.nickname }} fainted</h2>
+    <p id="faint-dialog-text" class="text">
+      Who caused it?
+      @if (partner(); as partner) {
+        <br />{{ partnerName() }}'s {{ partner.nickname }} faints too.
+      } @else {
+        <br /><span class="muted">Not linked: only your Pokémon faints.</span>
+      }
+    </p>
+
+    <div class="answers">
+      <button #firstButton type="button" class="blame" (click)="soulLink.confirmFaint('mine')">
+        {{ myName() }}
+      </button>
+      <button type="button" class="blame" (click)="soulLink.confirmFaint('theirs')">
+        {{ partnerName() }}
+      </button>
+    </div>
+    <button type="button" class="cancel" (click)="soulLink.cancelFaint()">Cancel</button>
+  </div>
+}

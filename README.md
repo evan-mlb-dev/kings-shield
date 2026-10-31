@@ -11,9 +11,10 @@ A team builder for **Pokémon Radical Red** (Nuzlocke friendly). Load your `.sav
 - **PC filters**: search, type, "effective vs" a type (with match-up badges), sort by base stats or Smogon tier.
 - **Coverage**: defensive and offensive tables, critical weaknesses, well resisted types and 0–100 team scores.
 - **Type chart**: interactive 18×18 chart with the strengths and weaknesses of each type.
-- **History**: save named teams and load them back later.
+- **History**: finished Soul Link runs, each with its deaths on a timeline and both players' body counts.
+- **Soul Link**: connect with another player (peer to peer, room code), see your linked Pokémon (same met location, or linked by hand) and run a turn-based champ select that fills both teams pair by pair.
 
-Everything runs in the browser: your save and teams are stored in `localStorage`, nothing is sent to a server.
+Everything runs in the browser: your save and runs are stored in `localStorage`, nothing is sent to a server. With Soul Link, the public PeerJS server only introduces the two browsers; your Pokémon then go straight to the other player.
 
 ## Getting started
 
@@ -41,6 +42,7 @@ The Pokémon data lives in `src/app/data/`. Scripts to refresh it:
 | `node src/app/data/build-pokemon-db.mjs <rawDir>` | Species, moves, abilities, items, natures and types from the Radical Red dex export |
 | `node src/app/data/fetch-growth-rates.mjs` | `growth-rates.json`: experience curves (used to compute PC levels) |
 | `node src/app/data/fetch-smogon-data.mjs` | `smogon.json`: Smogon tiers and dex links |
+| `node src/app/data/fetch-evolutions.mjs` | `evolutions.json`: evolutions of every species (Save Editor) |
 
 ## Deployment
 

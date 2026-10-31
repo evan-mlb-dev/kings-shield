@@ -10,57 +10,31 @@
         }
       </p>
       @if (gameState.pkmnData()) {
-        @if (naming()) {
-          <form class="save-form" (submit)="$event.preventDefault(); confirmSaving()">
-            <input
-              class="text-input"
-              type="text"
-              maxlength="40"
-              placeholder="Team name"
-              aria-label="Team name"
-              [value]="teamName()"
-              (input)="teamName.set($any($event.target).value)"
-              (keydown.escape)="cancelSaving()"
-              #teamNameInput
-            />
-            <button type="submit" class="primary-button">Save</button>
-            <button type="button" class="ghost-button" (click)="cancelSaving()">Cancel</button>
-          </form>
-        } @else {
-          <div class="team-actions">
-            @if (justSaved(); as name) {
-              <span class="status-message" role="status">
-                “{{ name }}” saved · <a routerLink="/history">View history</a>
-              </span>
-            }
-            <button
-              type="button"
-              class="primary-button"
-              title="Save this team to the history"
-              [disabled]="team().length === 0"
-              (click)="startSaving()"
-            >
-              Save team
-            </button>
-            <button
-              type="button"
-              class="ghost-button"
-              title="Send every team member back to the PC"
-              [disabled]="team().length === 0"
-              (click)="gameState.clearTeam()"
-            >
-              Send all to PC
-            </button>
-            <button
-              type="button"
-              class="ghost-button"
-              title="Put the save's original team back"
-              (click)="gameState.resetTeam()"
-            >
-              Reset
-            </button>
-          </div>
-        }
+        <div class="team-actions">
+          <button
+            type="button"
+            class="ghost-button"
+            title="Send every team member back to the PC"
+            [disabled]="team().length === 0 || drafting()"
+            (click)="gameState.clearTeam()"
+          >
+            Send all to PC
+          </button>
+          <button
+            type="button"
+            class="ghost-button reset-button"
+            [class.modified]="gameState.isTeamModified()"
+            [title]="
+              gameState.hasCustomReset()
+                ? 'Put the champ select team back'
+                : 'Put the save\'s original team back'
+            "
+            [disabled]="drafting()"
+            (click)="gameState.resetTeam()"
+          >
+            Reset
+          </button>
+        </div>
       }
     </header>
 
@@ -80,8 +54,11 @@
               class="team-card"
               cdkDrag
               [cdkDragData]="slot"
-              [cdkDragDisabled]="isLocked(slot)"
+              [cdkDragDisabled]="isLocked(slot) || drafting()"
               [class.locked]="isLocked(slot)"
+              [class.sl-highlight]="soulLink.highlightedMine() === slot.key"
+              (mouseenter)="hoverMine(slot)"
+              (mouseleave)="soulLink.unhover()"
               [title]="
                 isLocked(slot) ? 'Locked in the team' : 'Double-click to send back to the PC'
               "
@@ -90,7 +67,7 @@
               (cdkDragEnded)="draggingTeamMember.set(false)"
             >
               <app-pokemon-card [pokemon]="slot.mon" />
-              @if (!isLocked(slot)) {
+              @if (!isLocked(slot) && !drafting()) {
                 <button
                   type="button"
                   class="remove-button"
@@ -197,93 +174,15 @@
         </div>
       </h2>
       @if (!pcCollapsed() && pcView() === 'pc') {
-        <div class="filters">
-          <span class="filter-label">Type</span>
-          <div class="type-filters" role="group" aria-label="Filter by type">
-            @for (name of typeNames; track name) {
-              <button
-                type="button"
-                class="type-chip"
-                [class.selected]="isTypeSelected(name)"
-                [style.--chip-color]="typeColor(name)"
-                [attr.aria-pressed]="isTypeSelected(name)"
-                (click)="toggleType(name)"
-              >
-                <app-type-icon [name]="name" />
-              </button>
-            }
-          </div>
-
-          <span class="filter-label">Effective vs</span>
-          <div class="type-filters" role="group" aria-label="Effective against a type">
-            @for (name of typeNames; track name) {
-              <button
-                type="button"
-                class="type-chip"
-                [class.selected]="effectiveAgainst() === name"
-                [style.--chip-color]="typeColor(name)"
-                [attr.aria-pressed]="effectiveAgainst() === name"
-                [title]="'Pokémon effective against ' + name"
-                (click)="toggleEffectiveAgainst(name)"
-              >
-                <app-type-icon [name]="name" />
-              </button>
-            }
-          </div>
-
-          <span class="filter-label">Sort</span>
-          <div class="sort" role="group" aria-label="Sort by tier or base stat">
-            @for (option of sortOptions; track option.key) {
-              <button
-                type="button"
-                class="sort-button"
-                [class.selected]="sortKey() === option.key"
-                [attr.aria-pressed]="sortKey() === option.key"
-                (click)="setSort(option.key)"
-              >
-                {{ option.label }}
-                <span class="sort-dir" aria-hidden="true">{{
-                  sortKey() === option.key ? (sortDescending() ? '↓' : '↑') : ''
-                }}</span>
-              </button>
-            }
-            <button
-              type="button"
-              class="clear-button"
-              [class.visible]="hasFilters()"
-              [disabled]="!hasFilters()"
-              [attr.aria-hidden]="!hasFilters()"
-              (click)="clearFilters()"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
+        <app-pc-filters [filter]="filter" />
       }
     </header>
 
     @if (!pcCollapsed() && pcView() === 'pc') {
       <div class="pc-box" id="pc-content">
         <div class="pc-toolbar">
-          <label class="search-field">
-            <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2" />
-              <path
-                d="M16 16l4.5 4.5"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-            <input
-              class="search"
-              type="search"
-              placeholder="Search a Pokémon…"
-              aria-label="Search a Pokémon"
-              [value]="search()"
-              (input)="search.set($any($event.target).value)"
-            />
-          </label>
+          <app-pc-search [filter]="filter" />
+          <app-pc-score [mons]="availableMons()" />
         </div>
 
         <div
@@ -295,33 +194,29 @@
           (cdkDropListDropped)="dropOnPc($event)"
         >
           @for (entry of visiblePc(); track entry.key) {
-            <div class="pc-slot" cdkDrag [cdkDragData]="entry" (dblclick)="add(entry)">
+            <div
+              class="pc-slot"
+              cdkDrag
+              [cdkDragData]="entry"
+              [cdkDragDisabled]="drafting()"
+              [class.sl-highlight]="soulLink.highlightedMine() === entry.key"
+              [class.sl-dim]="drafting() && !soulLink.pickableMine().has(entry.key)"
+              [class.sl-pickable]="
+                drafting() && !!soulLink.draft()?.myTurn && soulLink.pickableMine().has(entry.key)
+              "
+              (mouseenter)="hoverMine(entry)"
+              (mouseleave)="soulLink.unhover()"
+              (dblclick)="add(entry)"
+            >
               <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
-              @if (matchupBadges().get(entry.key); as badges) {
-                <ul class="matchup-badges">
-                  @for (badge of badges; track badge.label) {
-                    <li class="matchup-badge" [class]="badge.kind" [title]="badge.title">
-                      {{ badge.label }}
-                    </li>
-                  }
-                </ul>
-              }
-              @if (sortKey(); as key) {
-                @let value = statOf(entry.mon, key);
-                <span
-                  class="stat-badge"
-                  [class.excellent]="isExcellentStat(value, key)"
-                  [style.--stat-hue]="statHue(value, key)"
-                  >{{ badgeLabel(entry.mon, key) }}</span
-                >
-              }
+              <app-pc-badges [filter]="filter" [entry]="entry" />
               <div class="drag-placeholder" *cdkDragPlaceholder></div>
             </div>
           } @empty {
             <p class="empty-message">
               @if (!gameState.pkmnData()) {
                 Load a save file to see your Pokémon.
-              } @else if (hasFilters()) {
+              } @else if (filter.hasFilters()) {
                 No Pokémon matches these filters.
               } @else {
                 The PC is empty.
@@ -347,7 +242,7 @@
             class="pc-slot fainted-slot"
             cdkDrag
             [cdkDragData]="entry"
-            title="Double-click to send back to the PC"
+            [title]="faintedTitle(entry)"
             (dblclick)="revive(entry)"
           >
             <app-pokemon-card [pokemon]="entry.mon" variant="mini" />

@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 const PC_COLLAPSED_KEY = 'king_shield_pc_collapsed';
+const PARTNER_PC_COLLAPSED_KEY = 'king_shield_partner_pc_collapsed';
 
 /** Tabs of the PC panel */
 export type PcView = 'pc' | 'fainted';
@@ -28,6 +29,13 @@ export class PcFiltersState {
   readonly effectiveAgainst = signal<string | null>(null);
 
   readonly pcCollapsed = signal(readFlag(PC_COLLAPSED_KEY));
+
+  readonly partnerPcCollapsed = signal(readFlag(PARTNER_PC_COLLAPSED_KEY));
+
+  togglePartnerPc(): void {
+    this.partnerPcCollapsed.update((c) => !c);
+    writeFlag(PARTNER_PC_COLLAPSED_KEY, this.partnerPcCollapsed());
+  }
 
   readonly pcView = signal<PcView>('pc');
 

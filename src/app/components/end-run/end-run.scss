@@ -1,0 +1,134 @@
+.end-run {
+  position: relative;
+}
+
+.end-run-button {
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffc1bd;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  background: rgb(194 46 40 / 15%);
+  border: 1px solid rgb(229 72 62 / 60%);
+  border-radius: 8px;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    color: white;
+    background: #c22e28;
+  }
+
+  &.alert {
+    color: white;
+    background: #c22e28;
+    box-shadow: 0 0 12px rgb(229 72 62 / 60%);
+  }
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+  padding: 14px;
+  background: var(--bg-dark, #121212);
+  border: 1px solid rgb(229 72 62 / 55%);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 60%);
+}
+
+.question {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.hint {
+  font-size: 0.7rem;
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+.answers {
+  display: flex;
+  gap: 8px;
+}
+
+.answer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  padding: 8px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: white;
+  cursor: pointer;
+  background: rgb(194 46 40 / 18%);
+  border: 1px solid rgb(229 72 62 / 60%);
+  border-radius: 10px;
+
+  &:hover,
+  &:focus-visible {
+    background: #c22e28;
+    outline: none;
+  }
+}
+
+.detail {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+}
+
+.link {
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 0.7rem;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  opacity: 0.6;
+
+  &:hover {
+    text-decoration: underline;
+    opacity: 1;
+  }
+}
+
+.new-run-button {
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  background: #2ea043;
+  border: 1px solid #56d364;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgb(63 185 80 / 45%);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: #3fb950;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #56d364;
+    outline-offset: 2px;
+  }
+}

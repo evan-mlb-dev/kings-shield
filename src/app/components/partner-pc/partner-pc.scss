@@ -1,0 +1,169 @@
+.partner-pc {
+  max-width: 1440px;
+  padding: 0 20px 20px;
+  margin: 0 auto;
+}
+
+.panel {
+  padding: 16px;
+  background: rgb(255 255 255 / 3%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 16px;
+}
+
+.panel-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 12px;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+  }
+
+  &.collapsed {
+    margin-bottom: 0;
+  }
+}
+
+.collapse-toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 8px 2px 2px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+
+  &:hover {
+    background: rgb(255 255 255 / 6%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  .count {
+    margin-left: 0;
+  }
+}
+
+.chevron {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+
+  .collapsed & {
+    transform: rotate(-90deg);
+  }
+}
+
+.count {
+  margin-left: 6px;
+  font-size: 0.8rem;
+  color: var(--primary-color);
+}
+
+.hint {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.offline {
+  font-size: 0.75rem;
+  text-align: center;
+
+  a {
+    margin-left: 6px;
+    color: var(--primary-color);
+    text-decoration: underline;
+  }
+}
+
+.partner-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+
+  .label {
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
+}
+
+ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.team-slots {
+  display: flex;
+  gap: 6px;
+}
+
+.scores {
+  display: flex;
+  gap: 8px;
+}
+
+.score {
+  padding: 3px 10px;
+  font-size: 0.7rem;
+  color: hsl(var(--hue) 80% 72%);
+  white-space: nowrap;
+  background: hsl(var(--hue) 60% 40% / 18%);
+  border: 1px solid hsl(var(--hue) 70% 55% / 60%);
+  border-radius: 999px;
+}
+
+.team-slot {
+  width: 64px;
+  height: 64px;
+  background: rgb(0 0 0 / 25%);
+  border-radius: 10px;
+
+  &.empty {
+    border: 1px dashed rgb(255 255 255 / 12%);
+  }
+}
+
+.box {
+  background: rgb(0 0 0 / 25%);
+  border-radius: 12px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 10px 0;
+}
+
+.grid {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  place-content: flex-start center;
+  max-height: 460px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.slot {
+  position: relative;
+}
+
+.fainted app-pokemon-card {
+  filter: grayscale(1) brightness(0.75);
+}

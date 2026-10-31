@@ -238,3 +238,40 @@ img {
 .coverage-table td.cell.fraction {
   font-size: 1rem;
 }
+
+.sl-highlight {
+  border-radius: 12px;
+  outline: 2px solid #f0d58c;
+  outline-offset: 2px;
+  box-shadow: 0 0 14px rgb(240 213 140 / 55%);
+}
+
+.sl-dim {
+  opacity: 0.3;
+}
+
+.sl-pickable {
+  cursor: pointer;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgb(135 116 245 / 70%);
+}
+
+.sl-preview {
+  outline: 1px dashed rgb(240 213 140 / 70%);
+  outline-offset: -1px;
+  opacity: 0.75;
+}
+
+.sl-delta {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.8;
+
+  &.up {
+    color: #3fb950;
+  }
+
+  &.down {
+    color: #ff8a82;
+  }
+}
