@@ -1,7 +1,17 @@
-import { Injectable, signal } from '@angular/core';
+import { effect, Injectable, signal } from '@angular/core';
 
 const PC_COLLAPSED_KEY = 'king_shield_pc_collapsed';
 const PARTNER_PC_COLLAPSED_KEY = 'king_shield_partner_pc_collapsed';
+const PC_ORDER_KEY = 'king_shield_pc_order';
+
+function readOrder(): string[] | null {
+  try {
+    const raw = localStorage.getItem(PC_ORDER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Tabs of the PC panel */
 export type PcView = 'pc' | 'fainted';
@@ -29,6 +39,20 @@ export class PcFiltersState {
   readonly effectiveAgainst = signal<string | null>(null);
 
   readonly pcCollapsed = signal(readFlag(PC_COLLAPSED_KEY));
+
+  readonly pcOrder = signal<readonly string[] | null>(readOrder());
+
+  constructor() {
+    effect(() => {
+      const order = this.pcOrder();
+      try {
+        if (order) localStorage.setItem(PC_ORDER_KEY, JSON.stringify(order));
+        else localStorage.removeItem(PC_ORDER_KEY);
+      } catch {
+        // Storage unavailable: the order only lasts for this visit
+      }
+    });
+  }
 
   readonly partnerPcCollapsed = signal(readFlag(PARTNER_PC_COLLAPSED_KEY));
 

@@ -1,0 +1,106 @@
+<div class="learner" cdkDropListGroup>
+  <div class="column">
+    <h3 class="column-title">Current moves</h3>
+    <ul class="list">
+      @for (id of slots(); track $index; let i = $index) {
+        @let move = slotMoves()[i];
+        <li
+          class="slot"
+          cdkDropList
+          [cdkDropListData]="i"
+          cdkDropListSortingDisabled
+          (cdkDropListDropped)="dropOnSlot($event, i)"
+        >
+          @if (move) {
+            <app-move-row [move]="move" cdkDrag [cdkDragData]="{ kind: 'slot', slot: i }">
+              <button
+                type="button"
+                class="clear-move"
+                title="Forget this move"
+                [attr.aria-label]="'Forget ' + move.name"
+                (mousedown)="$event.stopPropagation()"
+                (click)="clearSlot(i)"
+              >
+                ×
+              </button>
+            </app-move-row>
+          } @else {
+            <app-move-row placeholder="Drop a move here" />
+          }
+        </li>
+      }
+    </ul>
+    <p class="hint">
+      Learnable at level {{ level() }}: level-up moves reached, and TMs in the bag. Greyed moves
+      cannot be learned yet. Drag a known move out of its slot to forget it.
+    </p>
+    @if (!tmsKnown()) {
+      <p class="hint warning">The TM case could not be read: TMs stay greyed.</p>
+    }
+  </div>
+
+  <div class="column">
+    <h3 class="column-title">
+      Can learn <span class="count">{{ visible().length }}</span>
+    </h3>
+
+    <div class="filters">
+      <div class="category-filters" role="group" aria-label="Filter by category">
+        @for (category of categories; track category) {
+          <button
+            type="button"
+            class="category-chip"
+            [class.selected]="categoryFilter() === category"
+            [attr.aria-pressed]="categoryFilter() === category"
+            [title]="category"
+            (click)="toggleCategory(category)"
+          >
+            <app-move-category-icon [category]="category" />
+          </button>
+        }
+      </div>
+      <div class="type-filters" role="group" aria-label="Filter by type">
+        @for (type of types(); track type) {
+          <button
+            type="button"
+            class="type-chip"
+            [class.selected]="typeFilter() === type"
+            [style.--chip-color]="typeColor(type)"
+            [attr.aria-pressed]="typeFilter() === type"
+            (click)="toggleType(type)"
+          >
+            <app-type-icon [name]="type" variant="square" />
+          </button>
+        }
+      </div>
+    </div>
+
+    <ul
+      class="list learnables"
+      cdkDropList
+      cdkDropListSortingDisabled
+      (cdkDropListDropped)="dropOnLearnables($event)"
+    >
+      @for (learnable of visible(); track learnable.move.id) {
+        <app-move-row
+          [move]="learnable.move"
+          cdkDrag
+          [cdkDragData]="{ kind: 'learnable', moveId: learnable.move.id }"
+          [cdkDragDisabled]="!learnable.available"
+          [class.unavailable]="!learnable.available"
+          [class.known]="slots().includes(learnable.move.id)"
+          [hint]="
+            learnable.available ? 'Drag onto a slot, or double-click' : 'Not yet: ' + learnable.note
+          "
+          (dblclick)="addMove(learnable)"
+        >
+          <span class="note">{{ learnable.note }}</span>
+        </app-move-row>
+      } @empty {
+        <li class="hint">
+          {{ learnables().length ? 'No move matches these filters.' : 'No learnset data.' }}
+        </li>
+      }
+    </ul>
+  </div>
+</div>

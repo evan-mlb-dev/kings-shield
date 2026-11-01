@@ -71,7 +71,8 @@
               <span class="hint">· room {{ soulLink.roomCode() }}</span>
             </p>
             <p class="body-count" title="Pokémon each player caused to faint">
-              Body count: you <b>{{ soulLink.bodyCount().mine }}</b> · {{ partnerName() }}
+              Body count: {{ gameState.playerName() }} <b>{{ soulLink.bodyCount().mine }}</b> ·
+              {{ partnerName() }}
               <b>{{ soulLink.bodyCount().theirs }}</b>
             </p>
             <app-end-run />
@@ -190,7 +191,7 @@
         <div class="unlinked">
           @for (
             side of [
-              { label: 'Your PC', mons: unlinkedMine(), key: 'mine' },
+              { label: gameState.playerName() + "'s PC", mons: unlinkedMine(), key: 'mine' },
               { label: partnerName() + "'s PC", mons: unlinkedTheirs(), key: 'theirs' },
             ];
             track side.key

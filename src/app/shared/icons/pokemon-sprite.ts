@@ -20,10 +20,17 @@ const FALLBACK = 'images/pokemon/unknown.png';
 export class PokemonSprite {
   readonly speciesId = input.required<number>();
   readonly name = input('');
+  readonly shiny = input(false);
 
-  protected readonly src = linkedSignal(() => `images/pokemon/${this.speciesId()}.png`);
+  protected readonly src = linkedSignal(() =>
+    this.shiny()
+      ? `images/pokemon/shiny/${this.speciesId()}.png`
+      : `images/pokemon/${this.speciesId()}.png`,
+  );
 
   protected onError(): void {
-    if (this.src() !== FALLBACK) this.src.set(FALLBACK);
+    const normal = `images/pokemon/${this.speciesId()}.png`;
+    if (this.src().includes('/shiny/')) this.src.set(normal);
+    else if (this.src() !== FALLBACK) this.src.set(FALLBACK);
   }
 }

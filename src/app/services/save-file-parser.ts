@@ -10,6 +10,7 @@ export interface ParsedSave {
   trainerId: number;
   secretId: number;
   boxNames: string[];
+  tmCase?: number[];
 }
 
 @Injectable({
@@ -41,6 +42,10 @@ export class SaveFileParser {
   private readonly PC_EXTRA_SECTION = 0;
   private readonly PC_EXTRA_OFFSET = 0xb0;
   private readonly PC_EXTRA_SLOTS = 63;
+
+  private readonly BAG_SECTOR = 0x1e000;
+  private readonly TM_CASE_OFFSET = 0x3e4;
+  private readonly TM_CASE_SLOTS = 128;
 
   private readonly BOX_NAMES_OFFSET_IN_PC = 0x7f61;
   private readonly BOX_NAME_SIZE = 9;
@@ -120,7 +125,19 @@ export class SaveFileParser {
       trainerId: trainerOtId & 0xffff,
       secretId: trainerOtId >>> 16,
       boxNames,
+      tmCase: this.readTmCase(view),
     };
+  }
+
+  /** Item IDs of the TM case (empty slots skipped) */
+  private readTmCase(view: DataView): number[] {
+    const ids: number[] = [];
+    const start = this.BAG_SECTOR + this.TM_CASE_OFFSET;
+    for (let i = 0; i < this.TM_CASE_SLOTS; i++) {
+      const id = view.getUint16(start + i * 4, true);
+      if (id) ids.push(id);
+    }
+    return ids;
   }
 
   private findActiveSections(view: DataView): Map<number, number> | null {

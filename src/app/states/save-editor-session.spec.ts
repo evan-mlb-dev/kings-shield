@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
 import { Pokemon } from '../services/pokemon.models';
 import { SaveFileParser } from '../services/save-file-parser';
+import { evolutionsOf } from '../shared/evolutions';
 import { experienceForLevel } from '../shared/experience';
 import { GameStateService, pokemonKey } from './game-state';
 import { SaveBytesState } from './save-bytes';
@@ -122,5 +123,35 @@ describe.skipIf(!hasSave)('SaveEditorSession (real save)', () => {
     expect(pc.some((p) => p.personality === dead.personality)).toBe(false);
     session.applyLevelCap(100);
     expect(session.changes().some((c) => c.key === pokemonKey(dead))).toBe(false);
+  });
+
+  it('undoes every change of one Pokémon, evolution and nature included', () => {
+    const db = TestBed.inject(PokemonDb);
+    const save = session.save()!;
+    const mon = save.team.find((p) => evolutionsOf(p.speciesId, db).length > 0)!;
+    const other = save.team.find((p) => p !== mon)!;
+    const target = evolutionsOf(mon.speciesId, db)[0].speciesId;
+    session.apply(mon, {
+      species: target,
+      nature: ((mon.personality % 25) + 1) % 25,
+      level: mon.level! + 1,
+    });
+    session.apply(other, { level: other.level! + 1 });
+    const edited = session.save()!.team.find((p) => p.slot === mon.slot)!;
+    expect(edited.speciesId).toBe(target);
+
+    const key = session.revert(edited);
+    expect(key).toBe(pokemonKey(mon));
+    expect(session.save()!.team.find((p) => p.slot === mon.slot)).toEqual(mon);
+    // The other Pokémon keeps its change
+    expect(session.changes().map((c) => c.key)).toEqual([pokemonKey(other)]);
+    expect(session.save()!.team.find((p) => p.slot === other.slot)!.level).toBe(other.level! + 1);
+  });
+
+  it('reads the TM case of the save', () => {
+    // TMs owned in the test save, as told by its player
+    expect([...session.ownedTms()!].sort((a, b) => a - b)).toEqual([
+      3, 5, 9, 15, 21, 34, 39, 40, 47, 51, 77, 78, 88, 89, 111,
+    ]);
   });
 });

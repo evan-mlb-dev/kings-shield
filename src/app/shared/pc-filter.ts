@@ -9,6 +9,8 @@ export interface PcFilterEntry {
 
 export type SortKey = 'tier' | 'total' | 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
 
+const DEFAULT_SORT: SortKey = 'total';
+
 const TIER_ORDER = [
   'AG',
   'Uber',
@@ -86,6 +88,7 @@ export class PcFilter<T extends PcFilterEntry = PcFilterEntry> {
     private readonly db: PokemonDb,
     private readonly source: () => readonly T[],
     readonly effectiveAgainst: WritableSignal<string | null> = signal(null),
+    readonly manualOrder: WritableSignal<readonly string[] | null> = signal(null),
   ) {
     this.typeNames = [...db.types.keys()].filter((name) => name !== '???');
   }
@@ -94,12 +97,13 @@ export class PcFilter<T extends PcFilterEntry = PcFilterEntry> {
 
   /** Selected types: a Pokémon must have all of them (max 2) */
   readonly typeFilters = signal<string[]>([]);
-  readonly sortKey = signal<SortKey | null>(null);
+  readonly sortKey = signal<SortKey>(DEFAULT_SORT);
   readonly sortDescending = signal(true);
+
+  readonly isDefaultSort = computed(() => this.sortKey() === DEFAULT_SORT && this.sortDescending());
 
   readonly sortOptions: readonly { key: SortKey; label: string }[] = [
     { key: 'tier', label: 'Tier' },
-    { key: 'total', label: 'Total' },
     { key: 'hp', label: 'HP' },
     // Offense side by side, then defense side by side
     { key: 'atk', label: 'Atk' },
@@ -117,7 +121,7 @@ export class PcFilter<T extends PcFilterEntry = PcFilterEntry> {
       !!this.search().trim() ||
       this.typeFilters().length > 0 ||
       this.effectiveAgainst() !== null ||
-      this.sortKey() !== null,
+      !this.isDefaultSort(),
   );
 
   private readonly matchups = computed<ReadonlyMap<string, Matchup>>(() => {
@@ -176,6 +180,39 @@ export class PcFilter<T extends PcFilterEntry = PcFilterEntry> {
     return badges;
   });
 
+  readonly canReorder = computed(() => this.isDefaultSort() && this.effectiveAgainst() === null);
+
+  /** The PC follows the order set by hand */
+  readonly usesManualOrder = computed(() => this.canReorder() && !!this.manualOrder());
+
+  private readonly baseOrder = computed<T[]>(() => {
+    const byTotal = [...this.source()].sort(
+      (a, b) => this.statOf(b.mon, DEFAULT_SORT) - this.statOf(a.mon, DEFAULT_SORT),
+    );
+    const manual = this.manualOrder();
+    if (!manual) return byTotal;
+    const rank = new Map(manual.map((key, i) => [key, i]));
+    return [...byTotal].sort(
+      (a, b) => (rank.get(a.key) ?? Infinity) - (rank.get(b.key) ?? Infinity) || 0,
+    );
+  });
+
+  reorder(movedKey: string, targetKey: string): void {
+    if (movedKey === targetKey || !this.canReorder()) return;
+    const keys = this.baseOrder().map((e) => e.key);
+    const from = keys.indexOf(movedKey);
+    const to = keys.indexOf(targetKey);
+    if (from < 0 || to < 0) return;
+    keys.splice(from, 1);
+    keys.splice(to, 0, movedKey);
+    this.manualOrder.set(keys);
+  }
+
+  /** Back to the order by base stat total */
+  resetOrder(): void {
+    this.manualOrder.set(null);
+  }
+
   readonly visible = computed<T[]>(() => {
     const query = this.search().trim().toLowerCase();
     const types = this.typeFilters();
@@ -192,14 +229,19 @@ export class PcFilter<T extends PcFilterEntry = PcFilterEntry> {
     );
 
     const key = this.sortKey();
-    if (key) {
+    if (hasTarget && this.isDefaultSort()) {
+      list = [...list].sort(
+        (a, b) =>
+          matchupScore(matchups.get(b.key)) - matchupScore(matchups.get(a.key)) ||
+          this.statOf(b.mon, key) - this.statOf(a.mon, key),
+      );
+    } else if (this.usesManualOrder()) {
+      // Order set by hand, filters applied on top
+      const rank = new Map(this.baseOrder().map((e, i) => [e.key, i]));
+      list = [...list].sort((a, b) => rank.get(a.key)! - rank.get(b.key)!);
+    } else {
       const sign = this.sortDescending() ? -1 : 1;
       list = [...list].sort((a, b) => sign * (this.statOf(a.mon, key) - this.statOf(b.mon, key)));
-    } else if (hasTarget) {
-      // No stat sort: best match-ups first
-      list = [...list].sort(
-        (a, b) => matchupScore(matchups.get(b.key)) - matchupScore(matchups.get(a.key)),
-      );
     }
     return list;
   });
@@ -250,22 +292,15 @@ export class PcFilter<T extends PcFilterEntry = PcFilterEntry> {
   }
 
   setSort(key: SortKey | null): void {
-    if (key === null || key !== this.sortKey()) {
-      this.sortKey.set(key);
-      this.sortDescending.set(true);
-    } else if (this.sortDescending()) {
-      this.sortDescending.set(false);
-    } else {
-      this.sortKey.set(null);
-      this.sortDescending.set(true);
-    }
+    this.sortKey.set(key === null || key === this.sortKey() ? DEFAULT_SORT : key);
+    this.sortDescending.set(true);
   }
 
   clearFilters(): void {
     this.search.set('');
     this.typeFilters.set([]);
     this.effectiveAgainst.set(null);
-    this.sortKey.set(null);
+    this.sortKey.set(DEFAULT_SORT);
     this.sortDescending.set(true);
   }
 }

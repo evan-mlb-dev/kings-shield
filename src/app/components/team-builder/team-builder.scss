@@ -206,6 +206,7 @@
 
 .pc-toolbar {
   display: flex;
+  gap: 12px;
   align-items: center;
   justify-content: flex-start;
   padding: 10px 10px 0;
@@ -246,6 +247,14 @@
 
 .drag-placeholder {
   display: none;
+}
+
+.pc .drag-placeholder {
+  display: block;
+  width: 76px;
+  height: 88px;
+  border: 2px dashed rgb(240 213 140 / 55%);
+  border-radius: 10px;
 }
 
 .cdk-drag-preview.cdk-drag-animating {
@@ -302,4 +311,98 @@
 
 .fainted-slot app-pokemon-card {
   filter: grayscale(1) brightness(0.75);
+}
+
+.order-note {
+  display: inline-flex;
+  margin-left: auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.7rem;
+  color: #f0d58c;
+
+  &.muted {
+    color: inherit;
+    opacity: 0.45;
+  }
+}
+
+.order-reset {
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.68rem;
+  color: #f0d58c;
+  cursor: pointer;
+  background: rgb(240 213 140 / 10%);
+  border: 1px solid rgb(240 213 140 / 50%);
+  border-radius: 6px;
+
+  &:hover {
+    background: rgb(240 213 140 / 22%);
+  }
+}
+
+.fainted-tab {
+  position: relative;
+
+  &.cdk-drop-list-dragging {
+    color: white;
+    background: rgb(194 46 40 / 45%);
+  }
+}
+
+.dead-zone {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  pointer-events: none;
+  visibility: hidden;
+  background: #c22e28;
+  border-radius: 10px;
+  box-shadow: 0 0 18px rgb(229 72 62 / 70%);
+  opacity: 0;
+  transform: translate(-50%, 6px) scale(0.9);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &::after {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    content: '';
+    border: 6px solid transparent;
+    border-top-color: #c22e28;
+    transform: translateX(-50%);
+  }
+
+  .cdk-drop-list-dragging > & {
+    visibility: visible;
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.fainted-tab .cdk-drag-placeholder {
+  display: none;
+}
+
+.order-note + app-pc-score {
+  margin-left: 0;
 }

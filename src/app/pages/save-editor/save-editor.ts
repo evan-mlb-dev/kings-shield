@@ -2,11 +2,16 @@ import { Component, computed, effect, inject, linkedSignal, signal } from '@angu
 import { PokemonDb } from '../../models/pokemon/pokemon-db';
 import { Pokemon } from '../../services/pokemon.models';
 import { ParsedPokemon } from '../../services/save-file-parser';
+import { MoveLearner } from '../../components/move-learner/move-learner';
+import { MoveRow } from '../../components/move-row/move-row';
+import { NaturePicker } from '../../components/nature-picker/nature-picker';
 import { NumberStepper } from '../../components/number-stepper/number-stepper';
 import { Evolution, evolutionsOf } from '../../shared/evolutions';
+import { LearnableMove, learnableMoves } from '../../shared/learnset';
 import { PokemonSprite } from '../../shared/icons/pokemon-sprite';
 import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
+import { LevelCapState } from '../../states/level-cap';
 import { SaveEditorSession } from '../../states/save-editor-session';
 
 /** A Pokémon of the working copy, as listed */
@@ -20,28 +25,9 @@ interface Entry {
   position: string;
 }
 
-const LEVEL_CAP_KEY = 'king_shield_level_cap';
-
-function readLevelCap(): number {
-  try {
-    const value = Number(localStorage.getItem(LEVEL_CAP_KEY));
-    return value >= 1 && value <= 100 ? value : 50;
-  } catch {
-    return 50;
-  }
-}
-
-const STAT_LABELS: Readonly<Record<string, string>> = {
-  atk: 'Atk',
-  def: 'Def',
-  spa: 'SpA',
-  spd: 'SpD',
-  spe: 'Spe',
-};
-
 @Component({
   selector: 'app-save-editor-page',
-  imports: [PokemonSprite, TypeIcon, NumberStepper],
+  imports: [PokemonSprite, TypeIcon, NumberStepper, NaturePicker, MoveLearner, MoveRow],
   templateUrl: './save-editor.html',
   styleUrl: './save-editor.scss',
 })
@@ -51,8 +37,8 @@ export class SaveEditorPage {
 
   protected readonly search = signal('');
 
-  /** Level cap of the next fight; remembered between visits */
-  protected readonly levelCap = signal(readLevelCap());
+  private readonly levelCapState = inject(LevelCapState);
+  protected readonly levelCap = this.levelCapState.cap;
 
   protected readonly offCap = computed(
     () =>
@@ -63,13 +49,7 @@ export class SaveEditorPage {
   );
 
   protected setLevelCap(value: number): void {
-    const cap = Math.max(1, Math.min(100, Math.round(value) || 1));
-    this.levelCap.set(cap);
-    try {
-      localStorage.setItem(LEVEL_CAP_KEY, String(cap));
-    } catch {
-      // Storage unavailable: only for this visit
-    }
+    this.levelCapState.set(value);
   }
 
   protected applyLevelCap(): void {
@@ -145,10 +125,95 @@ export class SaveEditorPage {
     return null;
   });
 
+  protected readonly previewSpecies = computed(() => {
+    const id = this.evolveTo();
+    const species = id === null ? undefined : this.db.species.get(id);
+    return species ? { id: id!, name: species.name, types: species.types } : null;
+  });
+
+  protected readonly baseStats = computed(() => {
+    const entry = this.selected();
+    if (!entry) return null;
+    const stats = this.db.species.get(this.evolveTo() ?? entry.parsed.speciesId)?.baseStats;
+    if (!stats) return null;
+    const rows = (
+      [
+        ['HP', stats.hp],
+        ['Atk', stats.atk],
+        ['Def', stats.def],
+        ['SpA', stats.spa],
+        ['SpD', stats.spd],
+        ['Spe', stats.spe],
+      ] as const
+    ).map(([label, value]) => ({
+      label,
+      value,
+      percent: Math.min(100, (value / 180) * 100),
+      hue: Math.round(Math.min(1, Math.max(0, (value - 60) / 70)) * 180),
+    }));
+    return { rows, total: rows.reduce((sum, r) => sum + r.value, 0) };
+  });
+
+  protected readonly smogonLink = computed(() => {
+    const entry = this.selected();
+    if (!entry) return null;
+    const id = this.evolveTo() ?? entry.parsed.speciesId;
+    const species = this.db.species.get(id);
+    return species?.smogonSlug
+      ? {
+          name: species.name,
+          url: `https://www.smogon.com/dex/sv/pokemon/${species.smogonSlug}/national-dex/`,
+        }
+      : null;
+  });
+
   /** Direct evolutions of the selected Pokémon */
   protected readonly evolutions = computed<Evolution[]>(() => {
     const entry = this.selected();
     return entry ? evolutionsOf(entry.parsed.speciesId, this.db) : [];
+  });
+
+  protected isBlockedByCap(evolution: Evolution): boolean {
+    return evolution.level !== null && evolution.level > this.levelCap();
+  }
+
+  protected isAllowed(evolution: Evolution): boolean {
+    return evolution.kind !== 'other' && !this.isBlockedByCap(evolution);
+  }
+
+  /** Why an evolution cannot be picked, shown next to it */
+  protected blockReason(evolution: Evolution): string {
+    if (evolution.kind === 'other') return '(not allowed: do it in the game)';
+    return this.isBlockedByCap(evolution) ? '(above the level cap)' : '';
+  }
+
+  protected readonly evolvableKeys = computed(
+    () =>
+      new Set(
+        this.entries()
+          .filter((e) => evolutionsOf(e.parsed.speciesId, this.db).some((x) => this.isAllowed(x)))
+          .map((e) => e.key),
+      ),
+  );
+
+  protected readonly canEvolve = computed(() => this.evolutions().some((e) => this.isAllowed(e)));
+
+  protected chooseEvolution(value: string): void {
+    const evolution = this.evolutions().find((e) => e.speciesId === +value) ?? null;
+    if (evolution && !this.isAllowed(evolution)) return;
+    this.evolveTo.set(evolution?.speciesId ?? null);
+    if (evolution?.level && this.level() < evolution.level) this.level.set(evolution.level);
+  }
+
+  protected readonly evolutionProblem = computed(() => {
+    const evolution = this.evolutions().find((e) => e.speciesId === this.evolveTo());
+    if (evolution?.kind === 'other') return 'This evolution is not allowed: do it in the game.';
+    if (!evolution?.level) return null;
+    if (this.isBlockedByCap(evolution)) {
+      return `Evolves at level ${evolution.level}: above the level cap (${this.levelCap()}).`;
+    }
+    if (this.level() < evolution.level) return `Evolves at level ${evolution.level}.`;
+    return null;
   });
 
   /** The level field cannot go above the level cap */
@@ -156,56 +221,50 @@ export class SaveEditorPage {
 
   /** The selected Pokémon is already above the level cap */
   protected readonly aboveCap = computed(() => (this.selected()?.mon.level ?? 0) > this.levelCap());
-  protected readonly moveNames = linkedSignal(() => {
+
+  protected readonly tab = signal<'details' | 'moves'>('details');
+
+  /** Move IDs of the 4 slots (0 = empty) */
+  protected readonly moveSlots = linkedSignal(() => {
     const moves = this.selected()?.mon.moves ?? [];
-    return [0, 1, 2, 3].map((i) => moves[i]?.name ?? '');
+    return [0, 1, 2, 3].map((i) => moves[i]?.id ?? 0);
   });
 
-  protected readonly natures = this.db.natures.map((n) => ({
-    id: n.id,
-    label:
-      n.increasedStat && n.decreasedStat && n.increasedStat !== n.decreasedStat
-        ? `${n.name} (+${STAT_LABELS[n.increasedStat]} −${STAT_LABELS[n.decreasedStat]})`
-        : `${n.name} (neutral)`,
-  }));
+  /** Moves in the slots (a Pokémon keeps at least one) */
+  protected readonly filledSlots = computed(() => this.moveSlots().filter((id) => id > 0).length);
 
-  private readonly moveIds: ReadonlyMap<string, number> = (() => {
-    const counts = new Map<string, number>();
-    for (const m of this.db.moves.values()) counts.set(m.name, (counts.get(m.name) ?? 0) + 1);
-    const ids = new Map<string, number>();
-    for (const m of this.db.moves.values()) {
-      if (counts.get(m.name) === 1) ids.set(m.name.toLowerCase(), m.id);
-    }
-    return ids;
-  })();
+  protected clearSlot(slot: number): void {
+    if (this.filledSlots() <= 1) return;
+    this.moveSlots.update((slots) => slots.map((id, i) => (i === slot ? 0 : id)));
+  }
 
-  protected readonly moveOptions = [...this.db.moves.values()]
-    .filter((m) => this.moveIds.has(m.name.toLowerCase()))
-    .map((m) => m.name)
-    .sort((a, b) => a.localeCompare(b));
-
-  private readonly formMoves = computed(() =>
-    this.moveNames().map((name) =>
-      name.trim() ? (this.moveIds.get(name.trim().toLowerCase()) ?? null) : 0,
-    ),
+  protected readonly slotMoves = computed(() =>
+    this.moveSlots().map((id) => (id ? (this.db.moves.get(id) ?? null) : null)),
   );
 
-  protected readonly invalidMoves = computed(() => this.formMoves().map((id) => id === null));
+  protected readonly learnables = computed<LearnableMove[]>(() => {
+    const entry = this.selected();
+    if (!entry) return [];
+    const species = this.evolveTo() ?? entry.parsed.speciesId;
+    return learnableMoves(species, this.level(), this.session.ownedTms(), this.db);
+  });
 
-  protected readonly hasInvalidMove = computed(() => this.invalidMoves().some((x) => x));
-
-  protected readonly duplicateMoves = computed(() =>
-    this.formMoves().map((id, i, all) => !!id && all.indexOf(id) !== i),
+  protected readonly allowedMoves = computed(
+    () =>
+      new Set([
+        ...(this.selected()?.mon.moves.map((m) => m.id) ?? []),
+        ...this.learnables()
+          .filter((l) => l.available)
+          .map((l) => l.move.id),
+      ]),
   );
-
-  protected readonly hasDuplicateMove = computed(() => this.duplicateMoves().some((x) => x));
 
   /** Changes of the form compared with the selected Pokémon */
   protected readonly formChanges = computed(() => {
     const entry = this.selected();
     if (!entry) return null;
     const mon = entry.mon;
-    const moves = this.formMoves();
+    const moves = this.moveSlots();
     const currentMoves = [0, 1, 2, 3].map((i) => mon.moves[i]?.id ?? 0);
     const movesChanged = moves.some((id, i) => id !== currentMoves[i]);
     return {
@@ -213,7 +272,7 @@ export class SaveEditorPage {
       level: this.level() !== mon.level ? this.level() : undefined,
       nature: this.nature() !== (mon.nature?.id ?? 0) ? this.nature() : undefined,
       shiny: this.shiny() !== mon.isShiny ? this.shiny() : undefined,
-      moves: movesChanged ? moves.filter((id): id is number => id !== null && id > 0) : undefined,
+      moves: movesChanged ? moves.filter((id) => id > 0) : undefined,
     };
   });
 
@@ -223,7 +282,7 @@ export class SaveEditorPage {
     const level = this.level();
     if (!Number.isInteger(level) || level < 1 || level > 100) return false;
     if (changes.level !== undefined && level > this.levelCap()) return false;
-    if (this.hasInvalidMove() || this.hasDuplicateMove()) return false;
+    if (this.evolutionProblem()) return false;
     if (changes.moves && changes.moves.length === 0) return false;
     return Object.values(changes).some((v) => v !== undefined);
   });
@@ -231,10 +290,6 @@ export class SaveEditorPage {
   protected select(entry: Entry): void {
     this.selectedKey.set(entry.key);
     this.message.set(null);
-  }
-
-  protected setMoveName(index: number, name: string): void {
-    this.moveNames.update((names) => names.map((n, i) => (i === index ? name : n)));
   }
 
   protected apply(): void {
@@ -252,13 +307,23 @@ export class SaveEditorPage {
   }
 
   protected resetForm(): void {
+    const selected = this.selected();
+    if (selected && this.editedKeys().has(selected.key)) {
+      try {
+        const key = this.session.revert(selected.parsed);
+        this.selectedKey.set(key);
+        this.message.set({ kind: 'ok', text: `${selected.mon.nickname}: changes undone.` });
+      } catch (error) {
+        this.message.set({ kind: 'error', text: (error as Error).message });
+      }
+    }
     const entry = this.selected();
     if (!entry) return;
     this.evolveTo.set(null);
     this.level.set(entry.mon.level ?? 1);
     this.nature.set(entry.mon.nature?.id ?? 0);
     this.shiny.set(entry.mon.isShiny);
-    this.moveNames.set([0, 1, 2, 3].map((i) => entry.mon.moves[i]?.name ?? ''));
+    this.moveSlots.set([0, 1, 2, 3].map((i) => entry.mon.moves[i]?.id ?? 0));
   }
 
   protected download(): void {

@@ -122,22 +122,3 @@
   gap: 12px;
   align-items: center;
 }
-
-.wip-badge {
-  padding: 3px 8px;
-  font-size: 0.6rem;
-  color: #ffd27a;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  cursor: default;
-  background: rgb(255 179 0 / 12%);
-  border: 1px dashed rgb(255 179 0 / 55%);
-  border-radius: 999px;
-}
-
-@media (width <= 900px) {
-  .wip-badge {
-    display: none;
-  }
-}

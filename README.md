@@ -43,6 +43,8 @@ The Pokémon data lives in `src/app/data/`. Scripts to refresh it:
 | `node src/app/data/fetch-growth-rates.mjs` | `growth-rates.json`: experience curves (used to compute PC levels) |
 | `node src/app/data/fetch-smogon-data.mjs` | `smogon.json`: Smogon tiers and dex links |
 | `node src/app/data/fetch-evolutions.mjs` | `evolutions.json`: evolutions of every species (Save Editor) |
+| `node src/app/data/fetch-shiny-sprites.mjs` | `public/images/pokemon/shiny/`: shiny front sprites |
+| `node src/app/data/fetch-learnsets.mjs` | `learnsets.json`: level-up moves and TMs of every species (Save Editor) |
 
 ## Deployment
 

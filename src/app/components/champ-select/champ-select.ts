@@ -13,7 +13,7 @@ export class ChampSelect {
   protected readonly soulLink = inject(SoulLinkService);
   private readonly gameState = inject(GameStateService);
 
-  protected readonly myName = computed(() => this.gameState.pkmnData()?.trainerName || 'You');
+  protected readonly myName = this.gameState.playerName;
   protected readonly maxTeamSize = MAX_TEAM_SIZE;
 
   protected readonly partnerName = computed(

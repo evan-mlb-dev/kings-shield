@@ -48,6 +48,8 @@ export class GameStateService {
   });
 
   readonly boxNames = computed<string[]>(() => this.pkmnData()?.boxNames ?? []);
+
+  readonly playerName = computed(() => this.pkmnData()?.trainerName || 'Player');
   readonly isTeamFull = computed(() => this._team().length >= MAX_TEAM_SIZE);
 
   constructor() {

@@ -6,7 +6,7 @@ import { scoreLabel, teamScores } from '../../shared/coverage-score';
 import { TYPE_ORDER } from '../../shared/type-order';
 import { ParsedPokemon } from '../../services/save-file-parser';
 import { PokemonSprite } from '../../shared/icons/pokemon-sprite';
-import { MAX_TEAM_SIZE, pokemonKey } from '../../states/game-state';
+import { GameStateService, MAX_TEAM_SIZE, pokemonKey } from '../../states/game-state';
 import { PcFiltersState } from '../../states/pc-filters';
 import { SoulLinkService } from '../../states/soul-link';
 import { PcFilter } from '../../shared/pc-filter';
@@ -32,6 +32,7 @@ interface Entry {
 export class PartnerPc {
   private readonly db = inject(PokemonDb);
   protected readonly soulLink = inject(SoulLinkService);
+  private readonly gameState = inject(GameStateService);
   private readonly pcFilters = inject(PcFiltersState);
 
   protected readonly collapsed = this.pcFilters.partnerPcCollapsed;
@@ -117,7 +118,7 @@ export class PartnerPc {
     const death = entry.fainted ? this.soulLink.deathOf('theirs', entry.key) : null;
     if (!death) return '';
     return death.blame === 'mine'
-      ? 'Fainted because of you'
+      ? `Fainted because of ${this.gameState.playerName()}`
       : `Fainted because of ${this.partnerName()}`;
   }
 

@@ -4,7 +4,7 @@
       <div class="wipe" role="alert">
         <span class="wipe-icon" aria-hidden="true">☠</span>
         <p>
-          <b>{{ side === 'mine' ? 'You are' : partnerName() + ' is' }} wiped out.</b>
+          <b>{{ side === 'mine' ? myName() : partnerName() }} is wiped out.</b>
         </p>
         <span class="wipe-hint">Click “End run” and pick who wiped out.</span>
       </div>
@@ -25,7 +25,8 @@
           @if (done()) {
             Champ select complete
           } @else if (draft.myTurn) {
-            Your pick: double-click a highlighted Pokémon in your PC or {{ partnerName() }}'s
+            {{ myName() }}'s pick: double-click a highlighted Pokémon in your PC or
+            {{ partnerName() }}'s
           } @else {
             {{ partnerName() }} is picking…
           }
@@ -43,8 +44,8 @@
         </button>
       } @else {
         <p class="hint">
-          Both teams are emptied, then you each pick a linked pair in turn (you start), up to
-          {{ maxTeamSize }} pairs.
+          Both teams are emptied, then you each pick a linked pair in turn ({{ myName() }} starts),
+          up to {{ maxTeamSize }} pairs.
         </p>
         <button
           type="button"

@@ -2,6 +2,7 @@ import { computed, effect, inject, Injectable, signal, untracked } from '@angula
 import type { DataConnection, Peer, PeerError } from 'peerjs';
 import { ParsedPokemon } from '../services/save-file-parser';
 import { GameStateService, MAX_TEAM_SIZE, pokemonKey } from './game-state';
+import { LevelCapState } from './level-cap';
 import { Run, RunMon, RunsState, swapRun } from './runs';
 
 const ENABLED_KEY = 'king_shield_soul_link';
@@ -9,7 +10,7 @@ const LINKS_KEY = 'king_shield_soul_links';
 const DEATHS_KEY = 'king_shield_soul_deaths';
 const RUN_KEY = 'king_shield_soul_run';
 const PEER_PREFIX = 'kings-shield-soul-link-';
-const PROTOCOL = 4;
+const PROTOCOL = 5;
 /** Room codes: no 0/O or 1/I, easy to read out loud */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 6;
@@ -67,7 +68,9 @@ type Message =
       links: LinkState | null;
       deaths: Death[] | null;
       run: RunState | null;
+      levelCap: number | null;
     }
+  | { type: 'level-cap'; cap: number }
   | { type: 'new-run'; startedAt: number }
   | { type: 'faint'; death: Death }
   | { type: 'revive'; mine: string }
@@ -163,6 +166,11 @@ function readLinks(): LinkState {
 export class SoulLinkService {
   private readonly gameState = inject(GameStateService);
   private readonly runs = inject(RunsState);
+  private readonly levelCap = inject(LevelCapState);
+  /** Last level cap received from the partner: not sent back */
+  private receivedLevelCap: number | null = null;
+  /** Level cap last seen, to send changes only */
+  private lastLevelCap = this.levelCap.cap();
 
   /** Soul Link option; remembered between visits */
   readonly enabled = signal(this.readEnabled());
@@ -436,7 +444,7 @@ export class SoulLinkService {
       name: this.runs.defaultName(),
       startedAt: this.runState().startedAt ?? (times.length ? Math.min(...times) : now),
       endedAt: now,
-      myName: this.gameState.pkmnData()?.trainerName || 'You',
+      myName: this.gameState.playerName(),
       partnerName: this.partnerSave()?.trainerName || 'Partner',
       wipedOut,
       deaths: deaths.map((d) => ({
@@ -571,6 +579,19 @@ export class SoulLinkService {
     });
 
     effect(() => {
+      const cap = this.levelCap.cap();
+      const connected = this.status() === 'connected';
+      untracked(() => {
+        if (cap === this.lastLevelCap) return;
+        this.lastLevelCap = cap;
+        if (connected && cap !== this.receivedLevelCap) {
+          this.send({ type: 'level-cap', cap });
+        }
+        this.receivedLevelCap = null;
+      });
+    });
+
+    effect(() => {
       const data = this.gameState.pkmnData();
       if (this.status() !== 'connected') return;
       const save = data
@@ -669,6 +690,7 @@ export class SoulLinkService {
         links: this.isHost() ? this.links() : null,
         deaths: this.isHost() ? this._deaths() : null,
         run: this.isHost() ? this.runState() : null,
+        levelCap: this.isHost() ? this.levelCap.cap() : null,
       });
       this.status.set('connected');
     });
@@ -710,6 +732,7 @@ export class SoulLinkService {
         if (message.links) this.links.set(swapLinks(message.links));
         if (message.deaths) this._deaths.set(message.deaths.map(swapDeath));
         if (message.run) this.runState.set(message.run);
+        if (message.levelCap) this.applyLevelCap(message.levelCap);
         break;
       case 'faint': {
         const death = swapDeath(message.death);
@@ -722,6 +745,9 @@ export class SoulLinkService {
         if (mon) this.gameState.forceFaint(mon);
         break;
       }
+      case 'level-cap':
+        this.applyLevelCap(message.cap);
+        break;
       case 'new-run':
         this.runState.set({ ended: false, startedAt: message.startedAt });
         break;
@@ -764,6 +790,12 @@ export class SoulLinkService {
         this.draft.set(null);
         break;
     }
+  }
+
+  /** Level cap set by the partner (not sent back) */
+  private applyLevelCap(cap: number): void {
+    this.receivedLevelCap = cap;
+    this.levelCap.set(cap);
   }
 
   private send(message: Message): void {

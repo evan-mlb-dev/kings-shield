@@ -17,8 +17,8 @@ export class MainNav {
   protected readonly tabs: readonly NavTab[] = [
     { path: '/team-building', label: 'Team Building', icon: 'team' },
     { path: '/type-chart', label: 'Type Chart', icon: 'chart' },
-    { path: '/soul-link', label: 'Soul Link', icon: 'link' },
     { path: '/save-editor', label: 'Save Editor', icon: 'edit' },
+    { path: '/soul-link', label: 'Soul Link', icon: 'link' },
     { path: '/history', label: 'History', icon: 'history' },
   ];
 }

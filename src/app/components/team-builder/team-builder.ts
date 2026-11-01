@@ -2,10 +2,20 @@ import {
   CdkDrag,
   CdkDragDrop,
   CdkDragPlaceholder,
+  CdkDragSortEvent,
   CdkDropList,
   CdkDropListGroup,
 } from '@angular/cdk/drag-drop';
-import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { PokemonDb } from '../../models/pokemon/pokemon-db';
 import { Pokemon } from '../../services/pokemon.models';
 import { ParsedPokemon } from '../../services/save-file-parser';
@@ -74,6 +84,78 @@ export class TeamBuilder {
 
   private readonly pcPanel = viewChild<ElementRef<HTMLElement>>('pcPanel');
 
+  private readonly pcGrid = viewChild<ElementRef<HTMLElement>>('pcGrid');
+  /** Layout position of every tile (offsets: not affected by running animations) */
+  private pcLayout = new Map<HTMLElement, { x: number; y: number }>();
+
+  private readPcLayout(): Map<HTMLElement, { x: number; y: number }> {
+    const grid = this.pcGrid()?.nativeElement;
+    const layout = new Map<HTMLElement, { x: number; y: number }>();
+    for (const el of grid?.children ?? []) {
+      // Hidden tiles (the one being dragged) have no layout
+      if (el instanceof HTMLElement && el.offsetParent) {
+        layout.set(el, { x: el.offsetLeft, y: el.offsetTop });
+      }
+    }
+    return layout;
+  }
+
+  private pointer = { x: 0, y: 0 };
+  private lastSort = { time: 0, from: -1, x: 0, y: 0 };
+  private static readonly SORT_PAUSE_MS = 220;
+  private static readonly BACK_DISTANCE_PX = 28;
+
+  private readonly trackPointer = (event: PointerEvent) =>
+    (this.pointer = { x: event.clientX, y: event.clientY });
+
+  constructor() {
+    document.addEventListener('pointermove', this.trackPointer, { passive: true });
+    inject(DestroyRef).onDestroy(() =>
+      document.removeEventListener('pointermove', this.trackPointer),
+    );
+  }
+
+  protected readonly pcSortPredicate = (index: number): boolean => {
+    const last = this.lastSort;
+    if (performance.now() - last.time < TeamBuilder.SORT_PAUSE_MS) return false;
+    const moved = Math.hypot(this.pointer.x - last.x, this.pointer.y - last.y);
+    return index !== last.from || moved >= TeamBuilder.BACK_DISTANCE_PX;
+  };
+
+  protected onPcSorted(event: CdkDragSortEvent): void {
+    this.lastSort = {
+      time: performance.now(),
+      from: event.previousIndex,
+      x: this.pointer.x,
+      y: this.pointer.y,
+    };
+    this.animatePcReflow();
+  }
+
+  protected capturePcLayout(): void {
+    // After the CDK inserted its placeholder
+    requestAnimationFrame(() => (this.pcLayout = this.readPcLayout()));
+  }
+
+  protected animatePcReflow(): void {
+    const next = this.readPcLayout();
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      for (const [el, position] of next) {
+        const previous = this.pcLayout.get(el);
+        if (!previous) continue;
+        const dx = previous.x - position.x;
+        const dy = previous.y - position.y;
+        if (!dx && !dy) continue;
+        el.getAnimations().forEach((animation) => animation.cancel());
+        el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], {
+          duration: 180,
+          easing: 'cubic-bezier(0.2, 0, 0, 1)',
+        });
+      }
+    }
+    this.pcLayout = next;
+  }
+
   private readonly revealPc = effect(() => {
     if (this.pcFilters.revealRequest() === 0) return;
     // After the PC is unfolded and rendered
@@ -87,6 +169,7 @@ export class TeamBuilder {
     this.db,
     () => this.pc(),
     this.pcFilters.effectiveAgainst,
+    this.pcFilters.pcOrder,
   );
   protected readonly visiblePc = this.filter.visible;
 
@@ -115,7 +198,13 @@ export class TeamBuilder {
   }
 
   protected dropOnPc(event: CdkDragDrop<Entry[], DropData, Entry>): void {
-    if (event.previousContainer === event.container) return;
+    if (event.previousContainer === event.container) {
+      const target = event.container.data[event.currentIndex];
+      if (target && event.previousIndex !== event.currentIndex) {
+        this.filter.reorder(event.item.data.key, target.key);
+      }
+      return;
+    }
     if (event.previousContainer.id === FAINTED_LIST_ID) {
       this.soulLink.revive(event.item.data.parsed);
     } else {
@@ -167,7 +256,7 @@ export class TeamBuilder {
     const cause = !death
       ? ''
       : death.blame === 'mine'
-        ? 'Fainted because of you. '
+        ? `Fainted because of ${this.gameState.playerName()}. `
         : `Fainted because of ${this.soulLink.partnerSave()?.trainerName || 'your partner'}. `;
     return cause + 'Double-click to send back to the PC';
   }

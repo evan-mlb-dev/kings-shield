@@ -16,7 +16,7 @@ export class EndRun {
 
   protected readonly open = signal(false);
 
-  protected readonly myName = computed(() => this.gameState.pkmnData()?.trainerName || 'You');
+  protected readonly myName = this.gameState.playerName;
   protected readonly partnerName = computed(
     () => this.soulLink.partnerSave()?.trainerName || 'Your partner',
   );

@@ -223,6 +223,11 @@ export class SaveEditor {
   }
 
   /** The bytes of a Pokémon in the save, checked against its personality value */
+  restore(mon: ParsedPokemon, original: Uint8Array): void {
+    this.locate(mon);
+    for (const offset of this.byteOffsets(mon)) this.writer.bytes[offset] = original[offset];
+  }
+
   private locate(mon: ParsedPokemon): MonBytes {
     const offsets = this.byteOffsets(mon);
     const bytes = new MonBytes(this.writer.view, offsets);

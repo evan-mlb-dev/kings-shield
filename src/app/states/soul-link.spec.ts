@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ParsedPokemon } from '../services/save-file-parser';
 import { GameStateService, pokemonKey } from './game-state';
+import { LevelCapState } from './level-cap';
 import { RunsState } from './runs';
 import { SoulLinkService } from './soul-link';
 
@@ -349,5 +350,25 @@ describe('SoulLinkService', () => {
       startedAt: 42,
     });
     expect(soulLink.runEnded()).toBe(false);
+  });
+
+  it('shares the level cap with the partner, without echoing it back', () => {
+    const levelCap = TestBed.inject(LevelCapState);
+    const sent: unknown[] = [];
+    (soulLink as unknown as { send(m: unknown): void }).send = (m) => sent.push(m);
+    soulLink.status.set('connected');
+    TestBed.tick();
+    const capMessages = () => sent.filter((m) => (m as { type: string }).type === 'level-cap');
+    expect(capMessages()).toEqual([]); // the cap is not sent on connection
+
+    levelCap.set(45);
+    TestBed.tick();
+    expect(sent).toContainEqual({ type: 'level-cap', cap: 45 });
+
+    sent.length = 0;
+    (soulLink as unknown as { receive(m: unknown): void }).receive({ type: 'level-cap', cap: 52 });
+    TestBed.tick();
+    expect(levelCap.cap()).toBe(52);
+    expect(capMessages()).toEqual([]);
   });
 });

@@ -44,7 +44,7 @@
       >
         {{ option.label }}
         <span class="sort-dir" aria-hidden="true">{{
-          filter().sortKey() === option.key ? (filter().sortDescending() ? '↓' : '↑') : ''
+          filter().sortKey() === option.key ? '↓' : ''
         }}</span>
       </button>
     }

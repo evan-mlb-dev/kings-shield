@@ -84,6 +84,7 @@
               role="option"
               tabindex="0"
               [class.selected]="entry.key === selectedKey()"
+              [class.can-evolve]="evolvableKeys().has(entry.key)"
               [attr.aria-selected]="entry.key === selectedKey()"
               (click)="select(entry)"
               (keydown.enter)="select(entry)"
@@ -91,6 +92,7 @@
               <app-pokemon-sprite
                 [speciesId]="entry.mon.speciesId"
                 [name]="entry.mon.speciesName"
+                [shiny]="entry.mon.isShiny"
               />
               <span class="row-text">
                 <span class="row-name">
@@ -104,6 +106,9 @@
                   {{ entry.mon.baseStatTotal }}</span
                 >
               </span>
+              @if (evolvableKeys().has(entry.key)) {
+                <span class="evolve-badge" title="Can evolve">▲</span>
+              }
               @if (editedKeys().has(entry.key)) {
                 <span class="edited" title="Edited, not saved yet"></span>
               }
@@ -116,118 +121,215 @@
 
       <div class="panel form-panel">
         @if (selected(); as entry) {
-          <div class="mon-head">
-            <app-pokemon-sprite [speciesId]="entry.mon.speciesId" [name]="entry.mon.speciesName" />
+          @let preview = previewSpecies();
+          <div class="mon-head" [class.previewing]="!!preview">
+            <app-pokemon-sprite
+              [speciesId]="preview?.id ?? entry.mon.speciesId"
+              [name]="preview?.name ?? entry.mon.speciesName"
+              [shiny]="shiny()"
+            />
             <div>
               <h2>{{ entry.mon.nickname }}</h2>
-              <p class="row-meta">{{ entry.mon.speciesName }} · {{ entry.position }}</p>
+              <p class="row-meta">
+                @if (preview) {
+                  <span class="evolving">{{ entry.mon.speciesName }} → {{ preview.name }}</span>
+                } @else {
+                  {{ entry.mon.speciesName }}
+                }
+                · {{ entry.position }}
+              </p>
               <span class="types">
-                @for (type of entry.mon.types; track type.id) {
+                @for (type of preview?.types ?? entry.mon.types; track type.id) {
                   <app-type-icon [name]="type.name" />
                 }
               </span>
             </div>
+            @if (smogonLink(); as link) {
+              <a
+                class="smogon-link"
+                [href]="link.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                [title]="'Smogon builds for ' + link.name + ' (opens in a new tab)'"
+              >
+                Smogon builds
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+            }
           </div>
 
           <form class="form" (submit)="$event.preventDefault(); apply()">
-            <div class="field">
-              <label class="label" for="edit-evolution">Evolve</label>
-              @if (evolutions().length) {
-                <select
-                  id="edit-evolution"
-                  class="text-input"
-                  (change)="evolveTo.set(+$any($event.target).value || null)"
-                >
-                  <option value="" [selected]="evolveTo() === null">Don't evolve</option>
-                  @for (evolution of evolutions(); track evolution.speciesId) {
-                    <option
-                      [value]="evolution.speciesId"
-                      [selected]="evolveTo() === evolution.speciesId"
-                    >
-                      {{ evolution.name }} · {{ evolution.how }}
-                    </option>
-                  }
-                </select>
-              } @else {
-                <span class="muted-field">No evolution</span>
-              }
-            </div>
-
-            <div class="field">
-              <label class="label" for="edit-level">Level</label>
-              <app-number-stepper
-                inputId="edit-level"
-                label="Level"
-                [value]="level()"
-                [max]="maxLevel()"
-                (valueChange)="level.set($event)"
-              />
-              @if (aboveCap()) {
-                <span class="cap-warning">Above the level cap ({{ levelCap() }})</span>
-              } @else {
-                <span class="muted-field">Level cap {{ levelCap() }}</span>
-              }
-            </div>
-
-            <label class="field">
-              <span class="label">Nature</span>
-              <select
-                class="text-input"
-                [value]="nature()"
-                (change)="nature.set(+$any($event.target).value)"
+            <div class="tabs" role="tablist" aria-label="Edit">
+              <button
+                type="button"
+                role="tab"
+                class="tab"
+                [class.active]="tab() === 'details'"
+                [attr.aria-selected]="tab() === 'details'"
+                (click)="tab.set('details')"
               >
-                @for (option of natures; track option.id) {
-                  <option [value]="option.id" [selected]="option.id === nature()">
-                    {{ option.label }}
-                  </option>
-                }
-              </select>
-            </label>
-
-            <label class="field shiny-field">
-              <span class="label">Shiny</span>
-              <input
-                type="checkbox"
-                [checked]="shiny()"
-                (change)="shiny.set($any($event.target).checked)"
-              />
-              <span class="shiny-text">{{ shiny() ? '★ Shiny' : 'Not shiny' }}</span>
-            </label>
-
-            <div class="field moves-field">
-              <span class="label" id="moves-label">Moves</span>
-              <div class="moves" role="group" aria-labelledby="moves-label">
-                @for (name of moveNames(); track $index; let i = $index) {
-                  <input
-                    class="text-input"
-                    type="text"
-                    list="move-options"
-                    [placeholder]="'Move ' + (i + 1)"
-                    [attr.aria-label]="'Move ' + (i + 1)"
-                    [class.invalid]="invalidMoves()[i] || duplicateMoves()[i]"
-                    [value]="name"
-                    (input)="setMoveName(i, $any($event.target).value)"
-                  />
-                }
-              </div>
-              @if (hasInvalidMove()) {
-                <p class="field-error">Pick moves from the list.</p>
-              } @else if (hasDuplicateMove()) {
-                <p class="field-error">The same move appears twice.</p>
-              }
+                Details
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class="tab"
+                [class.active]="tab() === 'moves'"
+                [attr.aria-selected]="tab() === 'moves'"
+                (click)="tab.set('moves')"
+              >
+                Moves
+              </button>
             </div>
+
+            @if (tab() === 'moves') {
+              <app-move-learner
+                [(slots)]="moveSlots"
+                [learnables]="learnables()"
+                [allowed]="allowedMoves()"
+                [level]="level()"
+                [tmsKnown]="!!session.ownedTms()"
+              />
+            } @else {
+              <div class="details">
+                <div class="details-fields">
+                  <div class="field">
+                    <label class="label" for="edit-evolution">Evolve</label>
+                    @if (evolutions().length) {
+                      <select
+                        id="edit-evolution"
+                        class="text-input evolve-select"
+                        [class.available]="canEvolve() && evolveTo() === null"
+                        (change)="chooseEvolution($any($event.target).value)"
+                      >
+                        <option value="" [selected]="evolveTo() === null">Don't evolve</option>
+                        @for (evolution of evolutions(); track evolution.speciesId) {
+                          <option
+                            [value]="evolution.speciesId"
+                            [selected]="evolveTo() === evolution.speciesId"
+                            [disabled]="!isAllowed(evolution)"
+                          >
+                            {{ evolution.via ? evolution.via + ' → ' : '' }}{{ evolution.name }} ·
+                            {{ evolution.how }} {{ blockReason(evolution) }}
+                          </option>
+                        }
+                      </select>
+                    } @else {
+                      <select id="edit-evolution" class="text-input evolve-select" disabled>
+                        <option>No evolution</option>
+                      </select>
+                    }
+                    @if (evolutionProblem(); as problem) {
+                      <span class="cap-warning">{{ problem }}</span>
+                    }
+                  </div>
+
+                  <div class="field">
+                    <label class="label" for="edit-level">Level</label>
+                    <app-number-stepper
+                      inputId="edit-level"
+                      label="Level"
+                      [value]="level()"
+                      [max]="maxLevel()"
+                      (valueChange)="level.set($event)"
+                    />
+                    @if (aboveCap()) {
+                      <span class="cap-warning">Above the level cap ({{ levelCap() }})</span>
+                    } @else {
+                      <span class="muted-field">Level cap {{ levelCap() }}</span>
+                    }
+                  </div>
+
+                  <div class="field">
+                    <span class="label" id="nature-label">Nature</span>
+                    <app-nature-picker [value]="nature()" (valueChange)="nature.set($event)" />
+                  </div>
+
+                  <label class="field shiny-field">
+                    <span class="label">Shiny</span>
+                    <input
+                      type="checkbox"
+                      [checked]="shiny()"
+                      (change)="shiny.set($any($event.target).checked)"
+                    />
+                    <span class="shiny-text">{{ shiny() ? '★ Shiny' : 'Not shiny' }}</span>
+                  </label>
+
+                  @if (baseStats(); as stats) {
+                    <div class="field base-stats-field">
+                      <span class="label">Base stats</span>
+                      <dl class="base-stats">
+                        @for (stat of stats.rows; track stat.label) {
+                          <div class="stat-row" [style.--stat-hue]="stat.hue">
+                            <dt>{{ stat.label }}</dt>
+                            <dd>{{ stat.value }}</dd>
+                            <span class="stat-bar" aria-hidden="true">
+                              <span [style.width.%]="stat.percent"></span>
+                            </span>
+                          </div>
+                        }
+                        <div class="stat-row total">
+                          <dt>Total</dt>
+                          <dd>{{ stats.total }}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  }
+                </div>
+                <aside class="details-moves" aria-label="Moves">
+                  <h3 class="details-title">Moves</h3>
+                  @for (move of slotMoves(); track $index; let i = $index) {
+                    @if (move) {
+                      <app-move-row [move]="move">
+                        <button
+                          type="button"
+                          class="clear-move"
+                          title="Forget this move"
+                          [attr.aria-label]="'Forget ' + move.name"
+                          [disabled]="filledSlots() <= 1"
+                          (click)="clearSlot(i)"
+                        >
+                          ×
+                        </button>
+                      </app-move-row>
+                    } @else {
+                      <app-move-row placeholder="Empty slot" />
+                    }
+                  }
+                  <button type="button" class="link-button" (click)="tab.set('moves')">
+                    Change moves →
+                  </button>
+                </aside>
+              </div>
+            }
 
             <div class="actions">
-              <button type="button" class="ghost-button" (click)="resetForm()">Reset</button>
+              <button
+                type="button"
+                class="ghost-button"
+                [title]="
+                  editedKeys().has(entry.key)
+                    ? 'Undo every applied change of this Pokémon'
+                    : 'Back to the current values'
+                "
+                (click)="resetForm()"
+              >
+                {{ editedKeys().has(entry.key) ? 'Undo changes' : 'Reset' }}
+              </button>
               <button type="submit" class="primary-button" [disabled]="!canApply()">Apply</button>
             </div>
-            <p class="hint">
-              Changing the nature or shininess gives the Pokémon a new personality value (its gender
-              stays the same). A new move starts with full PP and no PP Up.
-            </p>
           </form>
         } @else {
-          <p class="hint empty">Select a Pokémon to edit it.</p>
+          <p class="hint no-selection">Select a Pokémon to edit it.</p>
         }
       </div>
     </div>
@@ -264,11 +366,5 @@
         }
       </div>
     }
-
-    <datalist id="move-options">
-      @for (name of moveOptions; track name) {
-        <option [value]="name"></option>
-      }
-    </datalist>
   }
 </section>

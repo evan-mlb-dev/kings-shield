@@ -4,6 +4,7 @@ import { SaveEditError, SaveEditor } from '../services/save-editor';
 import { ParsedPokemon, ParsedSave, SaveFileParser } from '../services/save-file-parser';
 import { SaveFileWriter } from '../services/save-file-writer';
 import { experienceForLevel, levelFromExperience } from '../shared/experience';
+import { ownedTmNumbers } from '../shared/learnset';
 import { GameStateService, pokemonKey } from './game-state';
 import { SaveBytesState } from './save-bytes';
 import { SoulLinkService } from './soul-link';
@@ -45,6 +46,7 @@ export class SaveEditorSession {
   private readonly soulLink = inject(SoulLinkService);
 
   private editor: SaveEditor | null = null;
+  private original: Uint8Array | null = null;
   private renamed = new Map<string, string>();
 
   /** The working copy, parsed again after every edit */
@@ -57,6 +59,11 @@ export class SaveEditorSession {
     const keep = (p: ParsedPokemon) => !p.isEgg && !fainted.has(pokemonKey(p));
     return { team: save.team.filter(keep), pc: save.pc.filter(keep) };
   });
+  readonly ownedTms = computed<ReadonlySet<number> | null>(() => {
+    const tmCase = this.save()?.tmCase;
+    return tmCase ? ownedTmNumbers(tmCase, this.db) : null;
+  });
+
   readonly unavailable = signal<string | null>(null);
   private readonly _changes = signal<PendingChange[]>([]);
   readonly changes = this._changes.asReadonly();
@@ -91,6 +98,7 @@ export class SaveEditorSession {
     }
     this.unavailable.set(null);
     this.editor = new SaveEditor(opened.editor, this.db);
+    this.original = bytes.slice();
     this.reparse();
   }
 
@@ -168,6 +176,19 @@ export class SaveEditorSession {
     }
     this.reparse();
     return count;
+  }
+
+  revert(mon: ParsedPokemon): string {
+    const editor = this.editor;
+    const original = this.original;
+    if (!editor || !original) throw new SaveEditError('No save to edit.');
+    const key = pokemonKey(mon);
+    editor.restore(mon, original);
+    const originalKey = [...this.renamed].find(([, current]) => current === key)?.[0] ?? key;
+    this.renamed.delete(originalKey);
+    this._changes.update((changes) => changes.filter((c) => c.key !== key));
+    this.reparse();
+    return originalKey;
   }
 
   download(): string {
