@@ -154,4 +154,15 @@ describe.skipIf(!hasSave)('SaveEditorSession (real save)', () => {
       3, 5, 9, 15, 21, 34, 39, 40, 47, 51, 77, 78, 88, 89, 111,
     ]);
   });
+
+  it('reads the Items pocket: no Ability Pill nor Dream Patch in the test save', () => {
+    const db = TestBed.inject(PokemonDb);
+    const names = session.save()!.bagItems!.map((id) => db.items.get(id)?.name);
+    expect(names.slice(0, 2)).toEqual(['Potion', 'Rare Candy']);
+    expect(names.length).toBe(55);
+    expect(session.abilityItems()).toEqual({ pill: false, patch: false });
+    // Berries pocket too, for held items
+    const berries = session.holdableItems()!.berries.map((id) => db.items.get(id)?.name);
+    expect(berries.slice(0, 2)).toEqual(['Cheri Berry', 'Chesto Berry']);
+  });
 });

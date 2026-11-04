@@ -20,6 +20,7 @@ const NICKNAME_LENGTH = 10;
 // Party layout (plain): data at 0x20 in the order Growth / Attacks / EVs / Misc
 const PARTY = {
   species: 0x20,
+  heldItem: 0x22,
   dataChecksum: 0x1c,
   experience: 0x24,
   ppBonuses: 0x28,
@@ -30,15 +31,20 @@ const PARTY = {
   maxHp: 0x58,
   /** atk, def, spe, spa, spd: u16 each, in this order */
   stats: 0x5a,
+  /** IVs / egg / hidden ability flag (u32), in the Misc data */
+  ivWord: 0x48,
 } as const;
 
 // PC layout (compressed)
 const BOX = {
   species: 0x1c,
+  heldItem: 0x1e,
   experience: 0x20,
   ppBonuses: 0x24,
   /** 4 moves x 10 bits, packed over 5 bytes */
   moves: 0x27,
+  /** IVs / egg / hidden ability flag (u32) */
+  ivWord: 0x36,
 } as const;
 
 /** Highest move ID the PC format can hold (10 bits) */
@@ -74,6 +80,9 @@ export function computeStats(
 }
 
 export class SaveEditError extends Error {}
+
+/** 0 = ability 1, 1 = ability 2, 2 = hidden ability */
+export type AbilityChoice = 0 | 1 | 2;
 
 export class SaveEditor {
   constructor(
@@ -119,6 +128,39 @@ export class SaveEditor {
     if (mon.location === 'party') {
       this.refreshPartyStats(bytes, edited, bytes.getU8(PARTY.level), personality);
     }
+    return edited;
+  }
+
+  /** Held item (0: none). Returns the updated Pokémon. */
+  setHeldItem(mon: ParsedPokemon, itemId: number): ParsedPokemon {
+    if (itemId !== 0 && !this.lookup.items.has(itemId)) {
+      throw new SaveEditError(`Unknown item #${itemId}.`);
+    }
+    const bytes = this.locate(mon);
+    if (itemId === mon.heldItem) return mon;
+    bytes.setU16(mon.location === 'party' ? PARTY.heldItem : BOX.heldItem, itemId);
+    return { ...mon, heldItem: itemId };
+  }
+
+  setAbility(mon: ParsedPokemon, ability: AbilityChoice): ParsedPokemon {
+    const abilityIds = this.lookup.species.get(mon.speciesId)?.abilityIds ?? [];
+    if (![0, 1, 2].includes(ability) || !abilityIds[ability === 2 ? 0 : 1 + ability]) {
+      throw new SaveEditError('This species does not have this ability.');
+    }
+    const bytes = this.locate(mon);
+    const hidden = ability === 2;
+    const slot = hidden ? mon.abilitySlot : ability;
+    if (hidden === !!mon.hiddenAbility && slot === mon.abilitySlot) return mon;
+
+    let edited: ParsedPokemon = { ...mon, hiddenAbility: hidden };
+    if (slot !== mon.abilitySlot) {
+      const personality = findPersonality(mon, mon.personality % 25, mon.isShiny, false, slot);
+      bytes.setU32(0, personality);
+      edited = { ...edited, personality, abilitySlot: slot };
+    }
+    const at = mon.location === 'party' ? PARTY.ivWord : BOX.ivWord;
+    const ivWord = bytes.getU32(at);
+    bytes.setU32(at, hidden ? (ivWord | 0x80000000) >>> 0 : (ivWord & 0x7fffffff) >>> 0);
     return edited;
   }
 
@@ -311,20 +353,29 @@ export function findPersonality(
   nature: number,
   shiny: boolean,
   keepUnownLetter = false,
+  abilitySlot?: number,
 ): number {
   const old = mon.personality >>> 0;
   const ids = mon.trainerId ^ mon.secretId;
+  // Gender byte: kept, unless the ability slot (its parity) changes
+  const lowByte =
+    abilitySlot === undefined || (old & 1) === abilitySlot
+      ? old & 0xff
+      : sameGenderByte(old & 0xff, abilitySlot);
+  if (keepUnownLetter && lowByte !== (old & 0xff)) {
+    throw new SaveEditError('Unown cannot change its ability.');
+  }
   const keep = (candidate: number) =>
     keepUnownLetter ? ((candidate & ~0x03030303) | (old & 0x03030303)) >>> 0 : candidate >>> 0;
   const fits = (p: number) =>
-    (p & 0xff) === (old & 0xff) &&
+    (p & 0xff) === lowByte &&
     p % 25 === nature &&
     isShinyPersonality(p, mon.trainerId, mon.secretId) === shiny;
 
   const start = Math.floor(Math.random() * 0x10000);
   for (let n = 0; n < 0x10000; n++) {
     const seed = (start + n) & 0xffff;
-    const low = ((seed & 0xff00) | (old & 0xff)) & 0xffff;
+    const low = ((seed & 0xff00) | lowByte) & 0xffff;
     if (shiny) {
       for (let r = 0; r < 8; r++) {
         const high = (ids ^ low ^ r) & 0xffff;
@@ -338,6 +389,19 @@ export function findPersonality(
     }
   }
   throw new SaveEditError('No personality found for this nature and shininess.');
+}
+
+/** Gender thresholds of the species gender ratios (female when the byte is below) */
+const GENDER_THRESHOLDS = [31, 63, 127, 191];
+
+export function sameGenderByte(byte: number, parity: number): number {
+  for (let distance = 1; distance < 256; distance += 2) {
+    for (const candidate of [byte + distance, byte - distance]) {
+      if (candidate < 0 || candidate > 255 || (candidate & 1) !== parity) continue;
+      if (GENDER_THRESHOLDS.every((t) => byte < t === candidate < t)) return candidate;
+    }
+  }
+  return byte;
 }
 
 function encodeText(text: string, length: number): number[] | null {

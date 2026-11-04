@@ -45,6 +45,7 @@ The Pokémon data lives in `src/app/data/`. Scripts to refresh it:
 | `node src/app/data/fetch-evolutions.mjs` | `evolutions.json`: evolutions of every species (Save Editor) |
 | `node src/app/data/fetch-shiny-sprites.mjs` | `public/images/pokemon/shiny/`: shiny front sprites |
 | `node src/app/data/fetch-learnsets.mjs` | `learnsets.json`: level-up moves and TMs of every species (Save Editor) |
+| `node src/app/data/fetch-move-descriptions.mjs` | Move descriptions from Smogon in `moves.json` (run after `build-pokemon-db.mjs`) |
 
 ## Deployment
 

@@ -1,0 +1,37 @@
+:host {
+  display: inline-flex;
+}
+
+button {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgb(255 255 255 / 55%);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #f0d58c;
+    border-color: rgb(240 213 140 / 60%);
+  }
+
+  &[aria-pressed='true'] {
+    color: #2a2207;
+    background: linear-gradient(135deg, #ffe58a, #e0b44a);
+    border-color: #ffd84d;
+    box-shadow: 0 0 12px rgb(255 216 77 / 45%);
+  }
+
+  .star {
+    font-size: 0.85rem;
+  }
+}

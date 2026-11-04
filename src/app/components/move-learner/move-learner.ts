@@ -1,21 +1,16 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { Component, computed, inject, input, model, signal } from '@angular/core';
+import { Component, computed, inject, input, model } from '@angular/core';
 import { PokemonDb } from '../../models/pokemon/pokemon-db';
 import type { MoveCategory } from '../../services/pokemon.models';
-import { MoveCategoryIcon } from '../../shared/icons/move-category-icon';
-import { TypeIcon } from '../../shared/icons/type-icon';
 import { LearnableMove } from '../../shared/learnset';
-import { typeColor } from '../../shared/type-colors';
 import { MoveRow } from '../move-row/move-row';
 
 /** What is dragged: a learnable move, or a move slot */
 type MoveDrag = { kind: 'learnable'; moveId: number } | { kind: 'slot'; slot: number };
 
-const CATEGORIES: readonly MoveCategory[] = ['physical', 'special', 'status'];
-
 @Component({
   selector: 'app-move-learner',
-  imports: [CdkDropListGroup, CdkDropList, CdkDrag, MoveRow, MoveCategoryIcon, TypeIcon],
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag, MoveRow],
   templateUrl: './move-learner.html',
   styleUrl: './move-learner.scss',
 })
@@ -31,20 +26,12 @@ export class MoveLearner {
   /** The TM case could be read */
   readonly tmsKnown = input(true);
 
-  protected readonly categories = CATEGORIES;
-  protected readonly typeColor = typeColor;
-
   protected readonly slotMoves = computed(() =>
     this.slots().map((id) => (id ? (this.db.moves.get(id) ?? null) : null)),
   );
 
-  protected readonly typeFilter = signal<string | null>(null);
-  protected readonly categoryFilter = signal<MoveCategory | null>(null);
-
-  /** Types present in the learnset, in a stable order */
-  protected readonly types = computed(() =>
-    [...new Set(this.learnables().map((l) => l.move.type.name))].sort(),
-  );
+  readonly typeFilter = input<string | null>(null);
+  readonly categoryFilter = input<MoveCategory | null>(null);
 
   protected readonly visible = computed(() =>
     this.learnables().filter(
@@ -53,14 +40,6 @@ export class MoveLearner {
         (!this.categoryFilter() || l.move.category === this.categoryFilter()),
     ),
   );
-
-  protected toggleType(type: string): void {
-    this.typeFilter.update((current) => (current === type ? null : type));
-  }
-
-  protected toggleCategory(category: MoveCategory): void {
-    this.categoryFilter.update((current) => (current === category ? null : category));
-  }
 
   protected placeMove(moveId: number, slot: number): void {
     if (!this.allowed().has(moveId)) return;
@@ -73,9 +52,13 @@ export class MoveLearner {
     });
   }
 
-  /** Double-click on a learnable move: first empty slot */
-  protected addMove(learnable: LearnableMove): void {
-    if (!learnable.available || this.slots().includes(learnable.move.id)) return;
+  protected toggleMove(learnable: LearnableMove): void {
+    const known = this.slots().indexOf(learnable.move.id);
+    if (known >= 0) {
+      this.clearSlot(known);
+      return;
+    }
+    if (!learnable.available) return;
     const empty = this.slots().indexOf(0);
     if (empty >= 0) this.placeMove(learnable.move.id, empty);
   }

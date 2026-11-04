@@ -2,18 +2,26 @@ import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 import { Component, computed, ElementRef, inject, input, OnDestroy, signal } from '@angular/core';
 import type { Move } from '../../services/pokemon.models';
 import { MoveCategoryIcon } from '../../shared/icons/move-category-icon';
+import { TypeIcon } from '../../shared/icons/type-icon';
 import { typeColor } from '../../shared/type-colors';
 
 @Component({
   selector: 'app-move-row',
-  imports: [MoveCategoryIcon, OverlayModule],
+  imports: [MoveCategoryIcon, TypeIcon, OverlayModule],
   template: `
     @if (move(); as move) {
       <app-move-category-icon [category]="move.category" />
+      <app-type-icon class="type" [name]="move.type.name" variant="square" />
       <span class="name">{{ move.name }}</span>
       <ng-content />
       <span class="accuracy">{{ move.accuracy === null ? '—' : move.accuracy + '%' }}</span>
-      <span class="power">{{ move.power ?? '—' }}</span>
+      <span
+        class="power"
+        [class.excellent]="excellent()"
+        [style.color]="powerColor()"
+        [attr.data-power]="move.power ?? '—'"
+        >{{ move.power ?? '—' }}</span
+      >
     } @else {
       <span class="placeholder">{{ placeholder() }}</span>
     }
@@ -96,6 +104,12 @@ import { typeColor } from '../../shared/type-colors';
     app-move-category-icon {
       flex-shrink: 0;
       width: 32px;
+    }
+
+    .type {
+      --type-icon-size: 18px;
+
+      margin-left: -2px;
     }
 
     .name {
@@ -194,7 +208,53 @@ import { typeColor } from '../../shared/type-colors';
     }
 
     .power {
+      position: relative;
       color: #fff;
+    }
+
+    .power.excellent {
+      text-shadow: 0 0 6px rgb(255 200 60 / 55%);
+      animation: power-glow 2.4s ease-in-out infinite;
+    }
+
+    .power.excellent::after {
+      position: absolute;
+      inset: 0;
+      color: transparent;
+      content: attr(data-power);
+      background: linear-gradient(
+          100deg,
+          transparent 35%,
+          rgb(255 255 255 / 95%) 50%,
+          transparent 65%
+        )
+        no-repeat;
+      background-clip: text;
+      background-size: 250% 100%;
+      animation: power-shine 2.4s ease-in-out infinite;
+    }
+
+    @keyframes power-shine {
+      from {
+        background-position: 100% 0;
+      }
+      60%,
+      to {
+        background-position: -150% 0;
+      }
+    }
+
+    @keyframes power-glow {
+      50% {
+        text-shadow: 0 0 10px rgb(255 200 60 / 90%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .power.excellent,
+      .power.excellent::after {
+        animation: none;
+      }
     }
   `,
 })
@@ -227,6 +287,16 @@ export class MoveRow implements OnDestroy {
   ngOnDestroy(): void {
     clearTimeout(this.timer);
   }
+
+  protected readonly powerColor = computed(() => {
+    const power = this.move()?.power;
+    if (!power) return null;
+    const strength = Math.round(Math.max(0, Math.min(1, (power - 40) / 80)) * 100);
+    return `color-mix(in srgb, #ffc93c ${strength}%, #ffffff)`;
+  });
+
+  /** Excellent move (power 100+): animated */
+  protected readonly excellent = computed(() => (this.move()?.power ?? 0) >= 100);
 
   protected readonly color = computed(() => {
     const move = this.move();

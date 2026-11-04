@@ -32,7 +32,7 @@
 
 .learnables {
   max-height: 420px;
-  padding-right: 8px;
+  padding: 3px 8px 3px 3px;
   overflow-y: auto;
   scrollbar-color: rgb(135 116 245 / 55%) transparent;
   scrollbar-width: thin;
@@ -50,6 +50,11 @@
   }
 }
 
+.slot app-move-row {
+  min-height: 44px;
+  font-size: 0.82rem;
+}
+
 app-move-row.cdk-drag {
   cursor: grab;
 }
@@ -61,13 +66,35 @@ app-move-row.unavailable {
 }
 
 app-move-row.known {
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 25%);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 2px var(--primary-color),
+    0 0 10px rgb(135 116 245 / 45%);
+}
+
+.known-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 3px 6px;
+  margin-right: 8px;
+  line-height: 1;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: white;
+  background: var(--primary-color);
+  border-radius: 4px;
 }
 
 .note {
   flex-shrink: 0;
+  width: 112px;
   margin-right: 14px;
+  overflow: hidden;
   font-size: 0.62rem;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   opacity: 0.5;
 }
 
@@ -84,47 +111,6 @@ app-move-row.known {
 
   &:hover {
     color: #ff8a82;
-    opacity: 1;
-  }
-}
-
-.filters {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.category-filters,
-.type-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.category-chip,
-.type-chip {
-  --chip-color: #8774f5;
-
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 5px;
-  cursor: pointer;
-  background: transparent;
-  border: 2px solid transparent;
-  border-radius: 7px;
-  opacity: 0.5;
-  transition:
-    opacity 0.15s ease,
-    border-color 0.15s ease;
-
-  &:hover {
-    opacity: 0.85;
-  }
-
-  &.selected {
-    background: color-mix(in srgb, var(--chip-color) 25%, transparent);
-    border-color: var(--chip-color);
     opacity: 1;
   }
 }

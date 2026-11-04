@@ -1,0 +1,31 @@
+<div class="category-filters" role="group" aria-label="Filter by category">
+  @for (c of categories; track c) {
+    <button
+      type="button"
+      class="category-chip"
+      [class.selected]="category() === c"
+      [attr.aria-pressed]="category() === c"
+      [title]="c"
+      (click)="toggleCategory(c)"
+    >
+      <app-move-category-icon [category]="c" />
+    </button>
+  }
+</div>
+<div class="type-filters" role="group" aria-label="Filter by type">
+  @for (t of types(); track t) {
+    <button
+      type="button"
+      class="type-chip"
+      [class.selected]="type() === t"
+      [class.stab]="stab().includes(t)"
+      [class.last-stab]="lastStab() === t"
+      [style.--chip-color]="typeColor(t)"
+      [attr.aria-pressed]="type() === t"
+      [title]="stab().includes(t) ? t + ' (STAB)' : t"
+      (click)="toggleType(t)"
+    >
+      <app-type-icon [name]="t" variant="square" />
+    </button>
+  }
+</div>

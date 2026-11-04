@@ -12,7 +12,13 @@
           (cdkDropListDropped)="dropOnSlot($event, i)"
         >
           @if (move) {
-            <app-move-row [move]="move" cdkDrag [cdkDragData]="{ kind: 'slot', slot: i }">
+            <app-move-row
+              [move]="move"
+              cdkDrag
+              [cdkDragData]="{ kind: 'slot', slot: i }"
+              hint="Double-click to forget it"
+              (dblclick)="clearSlot(i)"
+            >
               <button
                 type="button"
                 class="clear-move"
@@ -32,7 +38,7 @@
     </ul>
     <p class="hint">
       Learnable at level {{ level() }}: level-up moves reached, and TMs in the bag. Greyed moves
-      cannot be learned yet. Drag a known move out of its slot to forget it.
+      cannot be learned yet. Double-click a move to learn or forget it, or drag it out of its slot.
     </p>
     @if (!tmsKnown()) {
       <p class="hint warning">The TM case could not be read: TMs stay greyed.</p>
@@ -43,37 +49,6 @@
     <h3 class="column-title">
       Can learn <span class="count">{{ visible().length }}</span>
     </h3>
-
-    <div class="filters">
-      <div class="category-filters" role="group" aria-label="Filter by category">
-        @for (category of categories; track category) {
-          <button
-            type="button"
-            class="category-chip"
-            [class.selected]="categoryFilter() === category"
-            [attr.aria-pressed]="categoryFilter() === category"
-            [title]="category"
-            (click)="toggleCategory(category)"
-          >
-            <app-move-category-icon [category]="category" />
-          </button>
-        }
-      </div>
-      <div class="type-filters" role="group" aria-label="Filter by type">
-        @for (type of types(); track type) {
-          <button
-            type="button"
-            class="type-chip"
-            [class.selected]="typeFilter() === type"
-            [style.--chip-color]="typeColor(type)"
-            [attr.aria-pressed]="typeFilter() === type"
-            (click)="toggleType(type)"
-          >
-            <app-type-icon [name]="type" variant="square" />
-          </button>
-        }
-      </div>
-    </div>
 
     <ul
       class="list learnables"
@@ -90,10 +65,17 @@
           [class.unavailable]="!learnable.available"
           [class.known]="slots().includes(learnable.move.id)"
           [hint]="
-            learnable.available ? 'Drag onto a slot, or double-click' : 'Not yet: ' + learnable.note
+            slots().includes(learnable.move.id)
+              ? 'Known: double-click to forget it'
+              : learnable.available
+                ? 'Drag onto a slot, or double-click to learn it'
+                : 'Not yet: ' + learnable.note
           "
-          (dblclick)="addMove(learnable)"
+          (dblclick)="toggleMove(learnable)"
         >
+          @if (slots().includes(learnable.move.id)) {
+            <span class="known-badge" title="Already known">✓ Known</span>
+          }
           <span class="note">{{ learnable.note }}</span>
         </app-move-row>
       } @empty {

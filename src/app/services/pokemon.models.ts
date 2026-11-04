@@ -156,7 +156,12 @@ export class Pokemon {
       parsed.nickname || speciesName,
       species?.types ?? [],
       parsed.moves.map((id) => lookup.moves.get(id)).filter((m): m is Move => !!m),
-      Pokemon.resolveAbility(species?.abilityIds ?? [], parsed.abilitySlot, lookup.abilities),
+      Pokemon.resolveAbility(
+        species?.abilityIds ?? [],
+        parsed.abilitySlot,
+        !!parsed.hiddenAbility,
+        lookup.abilities,
+      ),
       lookup.items.get(parsed.heldItem) ?? null,
       lookup.natures[parsed.personality % 25] ?? null,
       parsed.level ??
@@ -179,9 +184,10 @@ export class Pokemon {
   private static resolveAbility(
     abilityIds: readonly number[],
     slot: number,
+    hidden: boolean,
     abilities: ReadonlyMap<number, Ability>,
   ): Ability | null {
-    const id = abilityIds[1 + slot] || abilityIds[1] || 0;
+    const id = (hidden && abilityIds[0]) || abilityIds[1 + slot] || abilityIds[1] || 0;
     return abilities.get(id) ?? null;
   }
 }

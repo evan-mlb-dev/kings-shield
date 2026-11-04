@@ -11,6 +11,8 @@ export interface ParsedSave {
   secretId: number;
   boxNames: string[];
   tmCase?: number[];
+  bagItems?: number[];
+  bagBerries?: number[];
 }
 
 @Injectable({
@@ -46,6 +48,11 @@ export class SaveFileParser {
   private readonly BAG_SECTOR = 0x1e000;
   private readonly TM_CASE_OFFSET = 0x3e4;
   private readonly TM_CASE_SLOTS = 128;
+  private readonly ITEMS_POCKET_SECTION = 13;
+  private readonly ITEMS_POCKET_OFFSET = 0xad8;
+  private readonly SECTION_DATA_END = 0xff0;
+  private readonly BERRIES_OFFSET = 0x5e4;
+  private readonly BERRIES_SLOTS = 64;
 
   private readonly BOX_NAMES_OFFSET_IN_PC = 0x7f61;
   private readonly BOX_NAME_SIZE = 9;
@@ -126,6 +133,8 @@ export class SaveFileParser {
       secretId: trainerOtId >>> 16,
       boxNames,
       tmCase: this.readTmCase(view),
+      bagItems: this.readItemsPocket(view, sections.get(this.ITEMS_POCKET_SECTION)),
+      bagBerries: this.readPocket(view, this.BAG_SECTOR + this.BERRIES_OFFSET, this.BERRIES_SLOTS),
     };
   }
 
@@ -136,6 +145,23 @@ export class SaveFileParser {
     for (let i = 0; i < this.TM_CASE_SLOTS; i++) {
       const id = view.getUint16(start + i * 4, true);
       if (id) ids.push(id);
+    }
+    return ids;
+  }
+
+  /** Item IDs of the Items pocket */
+  private readItemsPocket(view: DataView, sectionOffset: number | undefined): number[] {
+    if (sectionOffset === undefined) return [];
+    const start = sectionOffset + this.ITEMS_POCKET_OFFSET;
+    return this.readPocket(view, start, (this.SECTION_DATA_END - this.ITEMS_POCKET_OFFSET) / 4);
+  }
+
+  private readPocket(view: DataView, start: number, slots: number): number[] {
+    const ids: number[] = [];
+    for (let i = 0; i < slots && start + i * 4 + 4 <= view.byteLength; i++) {
+      const id = view.getUint16(start + i * 4, true);
+      if (!id) break;
+      if (view.getUint16(start + i * 4 + 2, true) > 0) ids.push(id);
     }
     return ids;
   }
@@ -249,7 +275,8 @@ export class SaveFileParser {
       },
       ivs: this.decodeIvs(ivWord),
       isEgg: ((ivWord >>> 30) & 1) === 1,
-      abilitySlot: (ivWord >>> 31) & 1,
+      abilitySlot: personality & 1,
+      hiddenAbility: ((ivWord >>> 31) & 1) === 1,
       isShiny: this.isShiny(otId, personality),
       metLocation: d.getUint8(M + 1),
       level: view.getUint8(offset + 0x54),
@@ -373,7 +400,8 @@ export class SaveFileParser {
       },
       ivs: this.decodeIvs(ivWord),
       isEgg: ((ivWord >>> 30) & 1) === 1,
-      abilitySlot: (ivWord >>> 31) & 1,
+      abilitySlot: personality & 1,
+      hiddenAbility: ((ivWord >>> 31) & 1) === 1,
       isShiny: this.isShiny(otId, personality),
       metLocation: bytes[offset + 0x33],
     };

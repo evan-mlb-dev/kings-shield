@@ -1,0 +1,52 @@
+<span class="label" id="item-label">Item</span>
+<div class="picker">
+  <button
+    type="button"
+    class="trigger"
+    aria-haspopup="listbox"
+    aria-labelledby="item-label"
+    [attr.aria-expanded]="open()"
+    [disabled]="disabled()"
+    [title]="disabled() ? 'The bag could not be read' : 'Items of your bag'"
+    (click)="toggle()"
+    (keydown)="onKeydown($event)"
+  >
+    <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: selected() }" />
+    <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" />
+    </svg>
+  </button>
+
+  @if (open()) {
+    <ul class="popup" role="listbox" aria-labelledby="item-label">
+      @for (group of groups(); track group.label) {
+        @if (group.label) {
+          <li class="group" role="presentation">{{ group.label }}</li>
+        }
+        @for (option of group.options; track option.id) {
+          <li
+            class="option"
+            role="option"
+            [attr.data-item]="option.id"
+            [attr.aria-selected]="option.id === value()"
+            [class.selected]="option.id === value()"
+            [class.active]="option.id === activeId()"
+            (mouseenter)="activeId.set(option.id)"
+            (mousedown)="$event.preventDefault(); pick(option)"
+          >
+            <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: option }" />
+          </li>
+        }
+      }
+    </ul>
+  }
+</div>
+
+<ng-template #optionContent let-option>
+  <span class="icon">
+    @if (option.id) {
+      <app-item-icon [id]="option.id" [name]="option.name" />
+    }
+  </span>
+  <span class="name" [class.none]="!option.id">{{ option.name }}</span>
+</ng-template>

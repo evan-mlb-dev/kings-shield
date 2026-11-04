@@ -1,10 +1,23 @@
-import { Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  linkedSignal,
+  signal,
+  untracked,
+} from '@angular/core';
 import { PokemonDb } from '../../models/pokemon/pokemon-db';
-import { Pokemon } from '../../services/pokemon.models';
+import { type MoveCategory, Pokemon } from '../../services/pokemon.models';
 import { ParsedPokemon } from '../../services/save-file-parser';
+import { AbilityPicker } from '../../components/ability-picker/ability-picker';
+import { ItemPicker } from '../../components/item-picker/item-picker';
+import { ChangesTable } from '../../components/changes-table/changes-table';
+import { MoveFilters } from '../../components/move-filters/move-filters';
 import { MoveLearner } from '../../components/move-learner/move-learner';
 import { MoveRow } from '../../components/move-row/move-row';
 import { NaturePicker } from '../../components/nature-picker/nature-picker';
+import { ShinyToggle } from '../../components/shiny-toggle/shiny-toggle';
 import { NumberStepper } from '../../components/number-stepper/number-stepper';
 import { Evolution, evolutionsOf } from '../../shared/evolutions';
 import { LearnableMove, learnableMoves } from '../../shared/learnset';
@@ -13,6 +26,7 @@ import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
 import { LevelCapState } from '../../states/level-cap';
 import { SaveEditorSession } from '../../states/save-editor-session';
+import type { AbilityChoice } from '../../services/save-editor';
 
 /** A Pokémon of the working copy, as listed */
 interface Entry {
@@ -27,7 +41,19 @@ interface Entry {
 
 @Component({
   selector: 'app-save-editor-page',
-  imports: [PokemonSprite, TypeIcon, NumberStepper, NaturePicker, MoveLearner, MoveRow],
+  imports: [
+    PokemonSprite,
+    TypeIcon,
+    NumberStepper,
+    NaturePicker,
+    MoveLearner,
+    MoveRow,
+    ShinyToggle,
+    MoveFilters,
+    ChangesTable,
+    AbilityPicker,
+    ItemPicker,
+  ],
   templateUrl: './save-editor.html',
   styleUrl: './save-editor.scss',
 })
@@ -118,6 +144,66 @@ export class SaveEditorPage {
   protected readonly level = linkedSignal(() => this.selected()?.mon.level ?? 1);
   protected readonly nature = linkedSignal(() => this.selected()?.mon.nature?.id ?? 0);
   protected readonly shiny = linkedSignal(() => this.selected()?.mon.isShiny ?? false);
+
+  /** Held item (0: none) */
+  protected readonly heldItem = linkedSignal(() => this.selected()?.parsed.heldItem ?? 0);
+
+  protected readonly currentAbility = computed<AbilityChoice>(() => {
+    const parsed = this.selected()?.parsed;
+    if (!parsed) return 0;
+    const ids = this.db.species.get(parsed.speciesId)?.abilityIds ?? [];
+    if (parsed.hiddenAbility && ids[0]) return 2;
+    return parsed.abilitySlot === 1 && ids[2] ? 1 : 0;
+  });
+  protected readonly ability = linkedSignal<AbilityChoice>(() => this.currentAbility());
+
+  protected readonly abilityOptions = computed(() => {
+    const entry = this.selected();
+    if (!entry) return [];
+    const ids = this.db.species.get(this.evolveTo() ?? entry.parsed.speciesId)?.abilityIds ?? [];
+    const current = this.currentAbility();
+    const owned = this.session.abilityItems();
+    return ([1, 2, 0] as const)
+      .filter((i) => ids[i])
+      .map((i) => {
+        const ability = this.db.abilities.get(ids[i]);
+        const choice = (i === 0 ? 2 : i - 1) as AbilityChoice;
+        const needed: string[] = [];
+        if ((choice === 2) !== (current === 2)) needed.push('Dream Patch');
+        if (choice !== 2 && choice !== entry.parsed.abilitySlot) needed.push('Ability Pill');
+        const missing = needed.filter((item) =>
+          item === 'Dream Patch' ? !owned?.patch : !owned?.pill,
+        );
+        return {
+          choice,
+          name: (ability?.name ?? `#${ids[i]}`) + (i === 0 ? ' (hidden)' : ''),
+          description: ability?.description ?? '',
+          allowed: choice === current || missing.length === 0,
+          missing,
+        };
+      });
+  });
+
+  protected readonly abilityLock = computed(() => {
+    const missing = new Set(
+      this.abilityOptions()
+        .filter((o) => !o.allowed)
+        .flatMap((o) => o.missing),
+    );
+    if (!missing.size) return null;
+    return this.session.abilityItems()
+      ? `Needs ${[...missing].join(' / ')} in the bag.`
+      : 'The bag could not be read: abilities stay as they are.';
+  });
+
+  protected chooseAbility(value: number): void {
+    const option = this.abilityOptions().find((o) => o.choice === value);
+    if (option?.allowed) this.ability.set(option.choice);
+  }
+
+  protected readonly abilityDescription = computed(
+    () => this.abilityOptions().find((o) => o.choice === this.ability())?.description ?? '',
+  );
 
   /** Species to evolve into (null: no evolution) */
   protected readonly evolveTo = linkedSignal<number | null>(() => {
@@ -242,6 +328,27 @@ export class SaveEditorPage {
     this.moveSlots().map((id) => (id ? (this.db.moves.get(id) ?? null) : null)),
   );
 
+  protected readonly moveTypeFilter = linkedSignal<string | null>(() => {
+    this.selectedKey();
+    return null;
+  });
+  protected readonly moveCategoryFilter = linkedSignal<MoveCategory | null>(() => {
+    this.selectedKey();
+    return null;
+  });
+
+  protected readonly stabTypes = computed(() =>
+    (this.previewSpecies()?.types ?? this.selected()?.mon.types ?? []).map((t) => t.name),
+  );
+
+  protected readonly learnableTypes = computed(() => {
+    const stab = this.stabTypes();
+    const rank = (name: string) => (stab.includes(name) ? stab.indexOf(name) : stab.length);
+    return [...new Set(this.learnables().map((l) => l.move.type.name))].sort(
+      (a, b) => rank(a) - rank(b) || a.localeCompare(b),
+    );
+  });
+
   protected readonly learnables = computed<LearnableMove[]>(() => {
     const entry = this.selected();
     if (!entry) return [];
@@ -272,6 +379,8 @@ export class SaveEditorPage {
       level: this.level() !== mon.level ? this.level() : undefined,
       nature: this.nature() !== (mon.nature?.id ?? 0) ? this.nature() : undefined,
       shiny: this.shiny() !== mon.isShiny ? this.shiny() : undefined,
+      ability: this.ability() !== this.currentAbility() ? this.ability() : undefined,
+      item: this.heldItem() !== entry.parsed.heldItem ? this.heldItem() : undefined,
       moves: movesChanged ? moves.filter((id) => id > 0) : undefined,
     };
   });
@@ -292,7 +401,11 @@ export class SaveEditorPage {
     this.message.set(null);
   }
 
-  protected apply(): void {
+  private readonly autoApply = effect(() => {
+    if (this.canApply()) untracked(() => this.apply());
+  });
+
+  private apply(): void {
     const entry = this.selected();
     const changes = this.formChanges();
     if (!entry || !changes || !this.canApply()) return;
@@ -300,7 +413,6 @@ export class SaveEditorPage {
       this.session.apply(entry.parsed, changes);
       const after = this.session.changes().at(-1)?.key;
       if (after) this.selectedKey.set(after);
-      this.message.set({ kind: 'ok', text: `${entry.mon.nickname} updated.` });
     } catch (error) {
       this.message.set({ kind: 'error', text: (error as Error).message });
     }
@@ -323,6 +435,8 @@ export class SaveEditorPage {
     this.level.set(entry.mon.level ?? 1);
     this.nature.set(entry.mon.nature?.id ?? 0);
     this.shiny.set(entry.mon.isShiny);
+    this.ability.set(this.currentAbility());
+    this.heldItem.set(entry.parsed.heldItem);
     this.moveSlots.set([0, 1, 2, 3].map((i) => entry.mon.moves[i]?.id ?? 0));
   }
 

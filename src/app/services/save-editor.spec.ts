@@ -4,7 +4,13 @@ import { TestBed } from '@angular/core/testing';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
 import { evolutionsOf } from '../shared/evolutions';
 import { experienceForLevel } from '../shared/experience';
-import { computeStats, findPersonality, isShinyPersonality, SaveEditor } from './save-editor';
+import {
+  computeStats,
+  findPersonality,
+  isShinyPersonality,
+  SaveEditor,
+  sameGenderByte,
+} from './save-editor';
 import { ParsedPokemon, ParsedSave, SaveFileParser } from './save-file-parser';
 import { SaveFileWriter } from './save-file-writer';
 
@@ -223,6 +229,60 @@ describe.skipIf(!hasSave)('SaveEditor (real save)', () => {
     const to = db.species.get(target)!.name;
     if (to.length <= 10 && /^[A-Za-z]+$/.test(to)) expect(reparsed.nickname).toBe(to);
   });
+
+  it('switches between ability 1, ability 2 and the hidden ability (party and PC)', () => {
+    const species = (p: ParsedPokemon) => db.species.get(p.speciesId)!.abilityIds;
+    for (const mon of [
+      save.team.find((p) => species(p)[2] && species(p)[0])!,
+      save.pc.find((p) => !p.isEgg && species(p)[2] && species(p)[0])!,
+    ]) {
+      const other = (1 - mon.abilitySlot) as 0 | 1;
+      const switched = editor.setAbility(mon, other);
+      let reparsed = [...reparse().team, ...reparse().pc].find(same(switched))!;
+      expect(reparsed.abilitySlot).toBe(other);
+      expect(reparsed.hiddenAbility).toBe(false);
+      // Same nature, shininess, IVs; gender byte on the same side of every ratio
+      expect(reparsed.personality % 25).toBe(mon.personality % 25);
+      expect(reparsed.isShiny).toBe(mon.isShiny);
+      expect(reparsed.ivs).toEqual(mon.ivs);
+      for (const t of [31, 63, 127, 191]) {
+        expect((reparsed.personality & 0xff) < t).toBe((mon.personality & 0xff) < t);
+      }
+
+      const hidden = editor.setAbility(switched, 2);
+      reparsed = [...reparse().team, ...reparse().pc].find(same(hidden))!;
+      expect(reparsed.hiddenAbility).toBe(true);
+      expect(reparsed.ivs).toEqual(mon.ivs);
+      expect(reparsed.isEgg).toBe(false);
+
+      editor.setAbility(hidden, mon.abilitySlot as 0 | 1);
+      reparsed = [...reparse().team, ...reparse().pc].find(
+        (p) => p.nickname === mon.nickname && p.speciesId === mon.speciesId,
+      )!;
+      expect(reparsed.hiddenAbility).toBe(false);
+      expect(reparsed.abilitySlot).toBe(mon.abilitySlot);
+    }
+  });
+
+  it('gives and takes held items, in the party and in the PC', () => {
+    const leftovers = [...db.items.values()].find((i) => i.name === 'Leftovers')!.id;
+    for (const mon of [save.team[0], save.pc.find((p) => !p.isEgg)!]) {
+      const given = editor.setHeldItem(mon, leftovers);
+      let reparsed = [...reparse().team, ...reparse().pc].find(same(mon))!;
+      expect(reparsed.heldItem).toBe(leftovers);
+      expect({ ...reparsed, heldItem: mon.heldItem }).toEqual(mon);
+
+      editor.setHeldItem(given, 0);
+      reparsed = [...reparse().team, ...reparse().pc].find(same(mon))!;
+      expect(reparsed.heldItem).toBe(0);
+    }
+    expect(() => editor.setHeldItem(save.team[0], 99999)).toThrow();
+  });
+
+  it('refuses an ability the species does not have', () => {
+    const mon = save.team.find((p) => !db.species.get(p.speciesId)!.abilityIds[2])!;
+    expect(() => editor.setAbility(mon, 1)).toThrow();
+  });
 });
 
 describe('findPersonality', () => {
@@ -244,5 +304,17 @@ describe('findPersonality', () => {
     expect(p & 0x03030303).toBe(mon.personality & 0x03030303);
     expect(p % 25).toBe(3);
     expect(isShinyPersonality(p, mon.trainerId, mon.secretId)).toBe(true);
+  });
+});
+
+describe('sameGenderByte', () => {
+  it('gives the wanted parity without crossing a gender threshold', () => {
+    for (let byte = 0; byte < 256; byte++) {
+      for (const parity of [0, 1]) {
+        const c = sameGenderByte(byte, parity);
+        expect(c & 1).toBe(parity);
+        for (const t of [31, 63, 127, 191]) expect(c < t).toBe(byte < t);
+      }
+    }
   });
 });

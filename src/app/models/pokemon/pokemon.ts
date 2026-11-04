@@ -31,6 +31,8 @@ export interface ParsedPokemon {
   ivs: Stats;
   isEgg: boolean;
   abilitySlot: number;
+  /** Has the species' hidden ability (when it has one) */
+  hiddenAbility?: boolean;
   isShiny: boolean;
   metLocation: number;
   /** Party only */

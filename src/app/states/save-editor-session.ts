@@ -1,6 +1,6 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
-import { SaveEditError, SaveEditor } from '../services/save-editor';
+import { AbilityChoice, SaveEditError, SaveEditor } from '../services/save-editor';
 import { ParsedPokemon, ParsedSave, SaveFileParser } from '../services/save-file-parser';
 import { SaveFileWriter } from '../services/save-file-writer';
 import { experienceForLevel, levelFromExperience } from '../shared/experience';
@@ -16,6 +16,10 @@ export interface PokemonEdit {
   level?: number;
   nature?: number;
   shiny?: boolean;
+  /** 0 = ability 1, 1 = ability 2, 2 = hidden */
+  ability?: AbilityChoice;
+  /** Held item ID (0: none) */
+  item?: number;
   moves?: number[];
 }
 
@@ -30,10 +34,16 @@ export interface PendingChange {
   level?: number;
   nature?: string;
   shiny?: boolean;
+  ability?: string;
+  /** Held item name ("None" when taken off) */
+  item?: string;
   moves?: string[];
 }
 
-type ChangedFields = Pick<PendingChange, 'evolvedFrom' | 'level' | 'nature' | 'shiny' | 'moves'>;
+type ChangedFields = Pick<
+  PendingChange,
+  'evolvedFrom' | 'level' | 'nature' | 'shiny' | 'ability' | 'item' | 'moves'
+>;
 
 @Injectable({
   providedIn: 'root',
@@ -62,6 +72,19 @@ export class SaveEditorSession {
   readonly ownedTms = computed<ReadonlySet<number> | null>(() => {
     const tmCase = this.save()?.tmCase;
     return tmCase ? ownedTmNumbers(tmCase, this.db) : null;
+  });
+
+  readonly abilityItems = computed<{ pill: boolean; patch: boolean } | null>(() => {
+    const bag = this.save()?.bagItems;
+    if (!bag) return null;
+    const names = new Set(bag.map((id) => this.db.items.get(id)?.name));
+    return { pill: names.has('Ability Pill'), patch: names.has('Dream Patch') };
+  });
+
+  readonly holdableItems = computed<{ items: number[]; berries: number[] } | null>(() => {
+    const save = this.save();
+    if (!save?.bagItems) return null;
+    return { items: save.bagItems, berries: save.bagBerries ?? [] };
   });
 
   readonly unavailable = signal<string | null>(null);
@@ -121,6 +144,19 @@ export class SaveEditorSession {
           fields.nature = this.db.natures[current.personality % 25]?.name;
         }
         if (current.isShiny !== before.isShiny) fields.shiny = current.isShiny;
+      }
+      if (edit.ability !== undefined) {
+        const before = current;
+        current = editor.setAbility(current, edit.ability);
+        if (current !== before) {
+          const ids = this.db.species.get(current.speciesId)?.abilityIds ?? [];
+          const id = ids[edit.ability === 2 ? 0 : 1 + edit.ability];
+          fields.ability = this.db.abilities.get(id)?.name ?? `#${id}`;
+        }
+      }
+      if (edit.item !== undefined && edit.item !== current.heldItem) {
+        current = editor.setHeldItem(current, edit.item);
+        fields.item = edit.item ? (this.db.items.get(edit.item)?.name ?? `#${edit.item}`) : 'None';
       }
       if (edit.level !== undefined) {
         editor.setLevel(current, edit.level);

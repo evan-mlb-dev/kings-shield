@@ -170,7 +170,7 @@ export class SoulLinkService {
   /** Last level cap received from the partner: not sent back */
   private receivedLevelCap: number | null = null;
   /** Level cap last seen, to send changes only */
-  private lastLevelCap = this.levelCap.cap();
+  private lastLevelCap = this.levelCap.explicit();
 
   /** Soul Link option; remembered between visits */
   readonly enabled = signal(this.readEnabled());
@@ -579,10 +579,10 @@ export class SoulLinkService {
     });
 
     effect(() => {
-      const cap = this.levelCap.cap();
+      const cap = this.levelCap.explicit();
       const connected = this.status() === 'connected';
       untracked(() => {
-        if (cap === this.lastLevelCap) return;
+        if (cap === null || cap === this.lastLevelCap) return;
         this.lastLevelCap = cap;
         if (connected && cap !== this.receivedLevelCap) {
           this.send({ type: 'level-cap', cap });
@@ -690,7 +690,7 @@ export class SoulLinkService {
         links: this.isHost() ? this.links() : null,
         deaths: this.isHost() ? this._deaths() : null,
         run: this.isHost() ? this.runState() : null,
-        levelCap: this.isHost() ? this.levelCap.cap() : null,
+        levelCap: this.isHost() ? this.levelCap.explicit() : null,
       });
       this.status.set('connected');
     });
