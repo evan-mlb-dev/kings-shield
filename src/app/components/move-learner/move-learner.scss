@@ -72,12 +72,18 @@ app-move-row.known {
     0 0 10px rgb(135 116 245 / 45%);
 }
 
+.known-slot {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  width: 58px;
+  margin-right: 8px;
+}
+
 .known-badge {
   display: inline-flex;
-  flex-shrink: 0;
   align-items: center;
   padding: 3px 6px;
-  margin-right: 8px;
   line-height: 1;
   font-size: 0.6rem;
   font-weight: 700;

@@ -13,25 +13,27 @@ import { typeColor } from '../../shared/type-colors';
       <app-move-category-icon [category]="move.category" />
       <app-type-icon class="type" [name]="move.type.name" variant="square" />
       <span class="name">{{ move.name }}</span>
-      @if (move.spread; as spread) {
-        <svg
-          class="spread"
-          [class.all]="spread === 'all'"
-          viewBox="0 0 18 14"
-          role="img"
-          [attr.aria-label]="spreadLabel(spread)"
-        >
-          <title>{{ spreadLabel(spread) }}</title>
-          @if (spread === 'all') {
-            <circle cx="4.5" cy="4" r="3" />
-            <circle cx="13.5" cy="4" r="3" />
-            <circle cx="9" cy="10.5" r="3" />
-          } @else {
-            <circle cx="4.5" cy="7" r="3.2" />
-            <circle cx="13.5" cy="7" r="3.2" />
-          }
-        </svg>
-      }
+      <span class="spread-slot">
+        @if (move.spread; as spread) {
+          <svg
+            class="spread"
+            [class.all]="spread === 'all'"
+            viewBox="0 0 18 14"
+            role="img"
+            [attr.aria-label]="spreadLabel(spread)"
+          >
+            <title>{{ spreadLabel(spread) }}</title>
+            @if (spread === 'all') {
+              <circle cx="4.5" cy="4" r="3" />
+              <circle cx="13.5" cy="4" r="3" />
+              <circle cx="9" cy="10.5" r="3" />
+            } @else {
+              <circle cx="4.5" cy="7" r="3.2" />
+              <circle cx="13.5" cy="7" r="3.2" />
+            }
+          </svg>
+        }
+      </span>
       <ng-content />
       <span class="accuracy">{{ move.accuracy === null ? '—' : move.accuracy + '%' }}</span>
       <span
@@ -128,8 +130,13 @@ import { typeColor } from '../../shared/type-colors';
       width: 32px;
     }
 
-    .spread {
+    .spread-slot {
+      display: flex;
       flex-shrink: 0;
+      width: 18px;
+    }
+
+    .spread {
       width: 18px;
       height: 14px;
       fill: #ff8a82;

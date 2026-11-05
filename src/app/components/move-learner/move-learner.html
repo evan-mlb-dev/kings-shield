@@ -73,9 +73,11 @@
           "
           (dblclick)="toggleMove(learnable)"
         >
-          @if (slots().includes(learnable.move.id)) {
-            <span class="known-badge" title="Already known">✓ Known</span>
-          }
+          <span class="known-slot">
+            @if (slots().includes(learnable.move.id)) {
+              <span class="known-badge" title="Already known">✓ Known</span>
+            }
+          </span>
           <span class="note">{{ learnable.note }}</span>
         </app-move-row>
       } @empty {
