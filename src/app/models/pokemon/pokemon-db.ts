@@ -3,6 +3,7 @@ import {
   Ability,
   Item,
   Move,
+  type MoveSpread,
   MoveCategory,
   Nature,
   NatureStat,
@@ -87,6 +88,7 @@ export class PokemonDb implements PokemonLookup {
           m.accuracy,
           m.pp,
           m.description,
+          (m as { spread?: MoveSpread }).spread ?? null,
         ),
       );
     }

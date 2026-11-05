@@ -63,6 +63,8 @@ export class Nature {
 export type MoveCategory = 'physical' | 'special' | 'status';
 
 /** A move (attack). Immutable once created. */
+export type MoveSpread = 'all' | 'foes';
+
 export class Move {
   constructor(
     /** Radical Red internal move ID, as found in the save file */
@@ -75,6 +77,7 @@ export class Move {
     public readonly accuracy: number | null,
     public readonly basePp: number,
     public readonly description = '',
+    public readonly spread: MoveSpread | null = null,
   ) {
     Object.freeze(this);
   }

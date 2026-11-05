@@ -403,6 +403,8 @@ app-move-learner {
 .actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+  min-height: 32px;
 }
 
 .evolve-select.available {

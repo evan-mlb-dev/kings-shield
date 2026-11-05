@@ -1,6 +1,6 @@
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 import { Component, computed, ElementRef, inject, input, OnDestroy, signal } from '@angular/core';
-import type { Move } from '../../services/pokemon.models';
+import type { Move, MoveSpread } from '../../services/pokemon.models';
 import { MoveCategoryIcon } from '../../shared/icons/move-category-icon';
 import { TypeIcon } from '../../shared/icons/type-icon';
 import { typeColor } from '../../shared/type-colors';
@@ -13,6 +13,25 @@ import { typeColor } from '../../shared/type-colors';
       <app-move-category-icon [category]="move.category" />
       <app-type-icon class="type" [name]="move.type.name" variant="square" />
       <span class="name">{{ move.name }}</span>
+      @if (move.spread; as spread) {
+        <svg
+          class="spread"
+          [class.all]="spread === 'all'"
+          viewBox="0 0 18 14"
+          role="img"
+          [attr.aria-label]="spreadLabel(spread)"
+        >
+          <title>{{ spreadLabel(spread) }}</title>
+          @if (spread === 'all') {
+            <circle cx="4.5" cy="4" r="3" />
+            <circle cx="13.5" cy="4" r="3" />
+            <circle cx="9" cy="10.5" r="3" />
+          } @else {
+            <circle cx="4.5" cy="7" r="3.2" />
+            <circle cx="13.5" cy="7" r="3.2" />
+          }
+        </svg>
+      }
       <ng-content />
       <span class="accuracy">{{ move.accuracy === null ? '—' : move.accuracy + '%' }}</span>
       <span
@@ -60,6 +79,9 @@ import { typeColor } from '../../shared/type-colors';
           @if (move.description) {
             <p class="tooltip-text">{{ move.description }}</p>
           }
+          @if (move.spread; as spread) {
+            <p class="tooltip-spread" [class.all]="spread === 'all'">{{ spreadLabel(spread) }}</p>
+          }
           @if (hint(); as hint) {
             <p class="tooltip-hint">{{ hint }}</p>
           }
@@ -104,6 +126,26 @@ import { typeColor } from '../../shared/type-colors';
     app-move-category-icon {
       flex-shrink: 0;
       width: 32px;
+    }
+
+    .spread {
+      flex-shrink: 0;
+      width: 18px;
+      height: 14px;
+      fill: #ff8a82;
+    }
+
+    .spread.all,
+    .tooltip-spread.all {
+      fill: #f0c060;
+      color: #f0c060;
+    }
+
+    .tooltip-spread {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ff8a82;
     }
 
     .type {
@@ -294,6 +336,10 @@ export class MoveRow implements OnDestroy {
     const strength = Math.round(Math.max(0, Math.min(1, (power - 40) / 80)) * 100);
     return `color-mix(in srgb, #ffc93c ${strength}%, #ffffff)`;
   });
+
+  protected spreadLabel(spread: MoveSpread): string {
+    return spread === 'all' ? 'Hits everyone around, ally included' : 'Hits both foes';
+  }
 
   /** Excellent move (power 100+): animated */
   protected readonly excellent = computed(() => (this.move()?.power ?? 0) >= 100);
