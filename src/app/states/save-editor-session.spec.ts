@@ -165,4 +165,26 @@ describe.skipIf(!hasSave)('SaveEditorSession (real save)', () => {
     const berries = session.holdableItems()!.berries.map((id) => db.items.get(id)?.name);
     expect(berries.slice(0, 2)).toEqual(['Cheri Berry', 'Chesto Berry']);
   });
+
+  it('downloads the Team Building team as the party, and shows it in the editor', () => {
+    const save = session.save()!;
+    const newcomer = save.pc.find((p) => !p.isEgg)!;
+    const team = [save.team[2], newcomer, save.team[0]];
+    gameState.setTeam(team);
+    TestBed.tick();
+
+    expect(session.partyChanged()).toBe(true);
+    expect(session.hasChanges()).toBe(true);
+    expect(session.editable().team.map(pokemonKey)).toEqual(team.map(pokemonKey));
+    expect(session.editable().pc.some((p) => pokemonKey(p) === pokemonKey(save.team[1]))).toBe(
+      true,
+    );
+
+    session.download();
+    TestBed.tick();
+    const party = session.save()!.team;
+    expect(party.map(pokemonKey)).toEqual(team.map(pokemonKey));
+    expect(gameState.team().map(pokemonKey)).toEqual(team.map(pokemonKey));
+    expect(session.partyChanged()).toBe(false);
+  });
 });

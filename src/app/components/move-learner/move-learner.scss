@@ -76,14 +76,16 @@ app-move-row.known {
   display: flex;
   flex-shrink: 0;
   justify-content: flex-end;
-  width: 58px;
+  width: 64px;
   margin-right: 8px;
 }
 
 .known-badge {
   display: inline-flex;
+  gap: 3px;
   align-items: center;
   padding: 3px 6px;
+  white-space: nowrap;
   line-height: 1;
   font-size: 0.6rem;
   font-weight: 700;

@@ -60,6 +60,14 @@ const POPULAR_ITEMS = [
   'Ability Shield',
 ];
 
+/** Lowercase, no accents ("Poké Doll" -> "poke doll") */
+const normalize = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
 interface ItemOption {
   id: number;
   name: string;
@@ -89,6 +97,7 @@ export class ItemPicker {
   protected readonly open = signal(false);
   /** Option under the keyboard cursor while open */
   protected readonly activeId = signal<number | null>(null);
+  protected readonly query = signal('');
 
   private option(id: number): ItemOption {
     return { id, name: id ? (this.db.items.get(id)?.name ?? `#${id}`) : 'None' };
@@ -108,13 +117,17 @@ export class ItemPicker {
       .sort((a, b) => POPULAR_ITEMS.indexOf(a.name) - POPULAR_ITEMS.indexOf(b.name));
     const taken = new Set(popular.map((o) => o.id));
     const held = this.held();
+    const query = normalize(this.query());
+    const matches = (o: ItemOption) => normalize(o.name).includes(query);
     return [
       { label: '', options: [this.option(0)] },
       { label: 'Held now', options: held && !inBag.includes(held) ? [this.option(held)] : [] },
       { label: 'Popular', options: popular },
       { label: 'Items', options: this.byName(this.items().filter((id) => !taken.has(id))) },
       { label: 'Berries', options: this.byName(this.berries().filter((id) => !taken.has(id))) },
-    ].filter((g) => g.options.length);
+    ]
+      .map((g) => ({ ...g, options: query ? g.options.filter(matches) : g.options }))
+      .filter((g) => g.options.length);
   });
 
   /** Every option in display order, for keyboard moves */
@@ -133,7 +146,26 @@ export class ItemPicker {
     this.close();
   }
 
+  protected search(text: string): void {
+    this.query.set(text);
+    const first = this.ordered()[0];
+    this.activeId.set(first?.id ?? null);
+    if (first) this.scrollTo(first.id);
+  }
+
   protected onKeydown(event: KeyboardEvent): void {
+    if (
+      !this.open() &&
+      event.key.length === 1 &&
+      /\S/.test(event.key) &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      this.show(event.key);
+      return;
+    }
     if (event.key === 'Escape') {
       if (this.open()) event.stopPropagation();
       this.close();
@@ -153,7 +185,8 @@ export class ItemPicker {
       this.scrollTo(next.id);
       return;
     }
-    if ((event.key === 'Enter' || event.key === ' ') && this.open()) {
+    const inSearch = event.target instanceof HTMLInputElement;
+    if ((event.key === 'Enter' || (event.key === ' ' && !inSearch)) && this.open()) {
       event.preventDefault();
       const option = this.ordered().find((o) => o.id === this.activeId());
       if (option) this.pick(option);
@@ -164,14 +197,24 @@ export class ItemPicker {
     if (this.open() && !this.host.nativeElement.contains(event.target as Node)) this.close();
   }
 
-  private show(): void {
-    this.activeId.set(this.value());
+  private show(query = ''): void {
     this.open.set(true);
-    setTimeout(() => this.scrollTo(this.value()));
+    this.query.set('');
+    this.activeId.set(this.value());
+    if (query) this.search(query);
+    // Focus the search box, so typing filters right away
+    setTimeout(() => {
+      this.host.nativeElement.querySelector<HTMLInputElement>('.search')?.focus();
+      this.scrollTo(this.activeId() ?? this.value());
+    });
   }
 
   private close(): void {
+    if (!this.open()) return;
+    const hadFocus = this.host.nativeElement.contains(document.activeElement);
     this.open.set(false);
+    this.query.set('');
+    if (hadFocus) this.host.nativeElement.querySelector<HTMLButtonElement>('.trigger')?.focus();
   }
 
   private scrollTo(id: number): void {

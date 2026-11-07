@@ -19,6 +19,7 @@ import movesJson from '../../data/moves.json';
 import naturesJson from '../../data/natures.json';
 import speciesJson from '../../data/species.json';
 import growthRatesJson from '../../data/growth-rates.json';
+import growthRateOverridesJson from '../../data/growth-rate-overrides.json';
 import smogonJson from '../../data/smogon.json';
 import typesJson from '../../data/types.json';
 import type { GrowthRate } from '../../shared/experience';
@@ -55,6 +56,7 @@ export class PokemonDb implements PokemonLookup {
     );
 
     const growthRates = growthRatesJson as Record<string, string>;
+    const growthOverrides = growthRateOverridesJson as Record<string, string | null>;
     const smogon = smogonJson as Record<string, { tier: string; slug: string }>;
     const species = new Map<number, SpeciesEntry>();
     for (const [id, s] of Object.entries(
@@ -68,7 +70,10 @@ export class PokemonDb implements PokemonLookup {
         types: s.types.map((name) => types.get(name)).filter((t): t is PokemonType => !!t),
         abilityIds: s.abilityIds,
         baseStats: s.baseStats,
-        growthRate: (growthRates[s.dex] as GrowthRate | undefined) ?? null,
+        growthRate:
+          s.name in growthOverrides
+            ? (growthOverrides[s.name] as GrowthRate | null)
+            : ((growthRates[s.dex] as GrowthRate | undefined) ?? null),
         tier: smogon[id]?.tier ?? null,
         smogonSlug: smogon[id]?.slug ?? null,
       });

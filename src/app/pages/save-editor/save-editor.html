@@ -13,7 +13,17 @@
     <div class="panel toolbar">
       <div class="pending">
         @if (session.hasChanges()) {
-          <b>{{ session.changes().length }}</b> Pokémon edited, not downloaded yet
+          @if (session.changes().length) {
+            <b>{{ session.changes().length }}</b> Pokémon edited{{
+              session.partyChanged() ? ', ' : ''
+            }}
+          }
+          @if (session.partyChanged()) {
+            <span title="The Team Building team becomes the party of the downloaded save"
+              >new team</span
+            >
+          }
+          · not downloaded yet
         } @else {
           No change yet: select a Pokémon to edit it.
         }
@@ -264,10 +274,15 @@
                       inputId="edit-level"
                       label="Level"
                       [value]="level()"
-                      [max]="maxLevel()"
+                      [min]="levelLocked() ? level() : 1"
+                      [max]="levelLocked() ? level() : maxLevel()"
                       (valueChange)="level.set($event)"
                     />
-                    @if (aboveCap()) {
+                    @if (levelLocked()) {
+                      <span class="cap-warning" title="Level it in game instead">
+                        XP curve unknown in Radical Red
+                      </span>
+                    } @else if (aboveCap()) {
                       <span class="cap-warning">Above the level cap ({{ levelCap() }})</span>
                     } @else {
                       <span class="muted-field">Level cap {{ levelCap() }}</span>

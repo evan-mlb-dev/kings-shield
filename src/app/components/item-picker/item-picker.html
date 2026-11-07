@@ -18,27 +18,41 @@
   </button>
 
   @if (open()) {
-    <ul class="popup" role="listbox" aria-labelledby="item-label">
-      @for (group of groups(); track group.label) {
-        @if (group.label) {
-          <li class="group" role="presentation">{{ group.label }}</li>
+    <div class="popup">
+      <input
+        class="search"
+        type="text"
+        placeholder="Type to search an item…"
+        aria-label="Search an item"
+        autocomplete="off"
+        [value]="query()"
+        (input)="search($any($event.target).value)"
+        (keydown)="onKeydown($event)"
+      />
+      <ul class="list" role="listbox" aria-labelledby="item-label">
+        @for (group of groups(); track group.label) {
+          @if (group.label) {
+            <li class="group" role="presentation">{{ group.label }}</li>
+          }
+          @for (option of group.options; track option.id) {
+            <li
+              class="option"
+              role="option"
+              [attr.data-item]="option.id"
+              [attr.aria-selected]="option.id === value()"
+              [class.selected]="option.id === value()"
+              [class.active]="option.id === activeId()"
+              (mouseenter)="activeId.set(option.id)"
+              (mousedown)="$event.preventDefault(); pick(option)"
+            >
+              <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: option }" />
+            </li>
+          }
+        } @empty {
+          <li class="no-match">No item matches “{{ query() }}”.</li>
         }
-        @for (option of group.options; track option.id) {
-          <li
-            class="option"
-            role="option"
-            [attr.data-item]="option.id"
-            [attr.aria-selected]="option.id === value()"
-            [class.selected]="option.id === value()"
-            [class.active]="option.id === activeId()"
-            (mouseenter)="activeId.set(option.id)"
-            (mousedown)="$event.preventDefault(); pick(option)"
-          >
-            <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: option }" />
-          </li>
-        }
-      }
-    </ul>
+      </ul>
+    </div>
   }
 </div>
 

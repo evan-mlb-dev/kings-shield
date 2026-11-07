@@ -1,6 +1,6 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
-import { AbilityChoice, SaveEditError, SaveEditor } from '../services/save-editor';
+import { AbilityChoice, followsCurve, SaveEditError, SaveEditor } from '../services/save-editor';
 import { ParsedPokemon, ParsedSave, SaveFileParser } from '../services/save-file-parser';
 import { SaveFileWriter } from '../services/save-file-writer';
 import { experienceForLevel, levelFromExperience } from '../shared/experience';
@@ -62,12 +62,38 @@ export class SaveEditorSession {
   /** The working copy, parsed again after every edit */
   readonly save = signal<ParsedSave | null>(null);
 
+  readonly plannedTeam = computed<ParsedPokemon[] | null>(() => {
+    const save = this.save();
+    this._changes(); // renamed keys
+    const keys = this.gameState.team().map((p) => {
+      const key = pokemonKey(p);
+      return this.renamed.get(key) ?? key;
+    });
+    if (!save || !keys.length) return null;
+    const byKey = new Map([...save.team, ...save.pc].map((p) => [pokemonKey(p), p]));
+    const team = keys.map((k) => byKey.get(k)).filter((p): p is ParsedPokemon => !!p);
+    return team.length ? team : null;
+  });
+
+  readonly partyChanged = computed(() => {
+    const planned = this.plannedTeam();
+    const party = this.save()?.team ?? [];
+    return (
+      !!planned &&
+      (planned.length !== party.length ||
+        planned.some((p, i) => pokemonKey(p) !== pokemonKey(party[i])))
+    );
+  });
+
   readonly editable = computed<{ team: ParsedPokemon[]; pc: ParsedPokemon[] }>(() => {
     const save = this.save();
     if (!save) return { team: [], pc: [] };
     const fainted = new Set(this.gameState.fainted().map(pokemonKey));
     const keep = (p: ParsedPokemon) => !p.isEgg && !fainted.has(pokemonKey(p));
-    return { team: save.team.filter(keep), pc: save.pc.filter(keep) };
+    const team = this.plannedTeam() ?? save.team;
+    const inTeam = new Set(team.map(pokemonKey));
+    const pc = [...save.team, ...save.pc].filter((p) => !inTeam.has(pokemonKey(p)));
+    return { team: team.filter(keep), pc: pc.filter(keep) };
   });
   readonly ownedTms = computed<ReadonlySet<number> | null>(() => {
     const tmCase = this.save()?.tmCase;
@@ -90,7 +116,7 @@ export class SaveEditorSession {
   readonly unavailable = signal<string | null>(null);
   private readonly _changes = signal<PendingChange[]>([]);
   readonly changes = this._changes.asReadonly();
-  readonly hasChanges = computed(() => this._changes().length > 0);
+  readonly hasChanges = computed(() => this._changes().length > 0 || this.partyChanged());
 
   constructor() {
     effect(() => {
@@ -180,7 +206,7 @@ export class SaveEditorSession {
 
   levelCapAction(mon: ParsedPokemon, cap: number): 'raise' | 'lower' | 'unknown' | null {
     const growth = this.db.species.get(mon.speciesId)?.growthRate;
-    if (!growth) return 'unknown';
+    if (!growth || !followsCurve(mon, growth)) return 'unknown';
     const level = mon.level ?? levelFromExperience(growth, mon.experience);
     if (level < cap) return 'raise';
     return mon.experience > experienceForLevel(growth, cap) ? 'lower' : null;
@@ -230,7 +256,7 @@ export class SaveEditorSession {
   download(): string {
     const editor = this.editor;
     if (!editor || !this.hasChanges()) throw new SaveEditError('Nothing to download.');
-    const bytes = editor.writer.toBytes();
+    const bytes = this.withPlannedParty(editor.writer.toBytes());
     const name = editedFileName(this.gameState.saveName());
 
     const url = URL.createObjectURL(
@@ -252,6 +278,16 @@ export class SaveEditorSession {
     }
     this.saveBytes.set(bytes);
     return name;
+  }
+
+  private withPlannedParty(bytes: Uint8Array): Uint8Array {
+    const team = this.plannedTeam();
+    const save = this.save();
+    if (!team || !save || !this.partyChanged()) return bytes;
+    const opened = SaveFileWriter.open(bytes);
+    if (!opened.ok) throw new SaveEditError(opened.reason);
+    new SaveEditor(opened.editor, this.db).setParty(team, save);
+    return opened.editor.toBytes();
   }
 
   private reparse(): void {

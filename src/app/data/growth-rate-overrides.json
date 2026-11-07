@@ -1,0 +1,21 @@
+{
+  "_comment": "Radical Red experience curves that differ from the official ones (PokeAPI), found by comparing the level and experience the game writes for party Pokemon. null: the curve is not known yet, level editing is disabled for that species.",
+  "Toedscool": "slow",
+  "Toedscruel": "slow",
+  "Wattrel": "slow",
+  "Kilowattrel": "slow",
+  "Glimmet": "medium-fast",
+  "Glimmora": "medium-fast",
+  "Flittle": "medium-fast",
+  "Espathra": "medium-fast",
+  "Tarountula": "fast",
+  "Spidops": "fast",
+  "Pawmi": "slow",
+  "Pawmo": "slow",
+  "Pawmot": "slow",
+  "Iron Thorns": "medium-fast",
+  "Finizen": null,
+  "Palafin": null,
+  "Varoom": null,
+  "Revavroom": null
+}

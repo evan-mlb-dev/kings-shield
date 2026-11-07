@@ -26,7 +26,7 @@ import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
 import { LevelCapState } from '../../states/level-cap';
 import { SaveEditorSession } from '../../states/save-editor-session';
-import type { AbilityChoice } from '../../services/save-editor';
+import { type AbilityChoice, followsCurve } from '../../services/save-editor';
 
 /** A Pokémon of the working copy, as listed */
 interface Entry {
@@ -107,22 +107,39 @@ export class SaveEditorPage {
 
   protected readonly entries = computed<Entry[]>(() => {
     const { team, pc: pcMons } = this.session.editable();
-    const toEntry = (parsed: ParsedPokemon, place: string): Entry => ({
+    // Where it is in the save now
+    const savedAt = (p: ParsedPokemon) =>
+      p.location === 'party'
+        ? `Team, slot ${p.slot}`
+        : p.region === 'extra'
+          ? `Extra boxes, slot ${p.slot}`
+          : `Box ${p.box}, slot ${p.slot}`;
+    const toEntry = (parsed: ParsedPokemon, place: string, position: string): Entry => ({
       key: pokemonKey(parsed),
       parsed,
       mon: Pokemon.fromParsed(parsed, this.db),
       place,
-      position:
-        parsed.location === 'party'
-          ? `Team, slot ${parsed.slot}`
-          : parsed.region === 'extra'
-            ? `Extra boxes, slot ${parsed.slot}`
-            : `Box ${parsed.box}, slot ${parsed.slot}`,
+      position,
     });
+    const teamEntries = team.map((p, i) =>
+      toEntry(
+        p,
+        'Team',
+        p.location === 'party' && p.slot === i + 1
+          ? savedAt(p)
+          : `Team, slot ${i + 1} (now ${savedAt(p)})`,
+      ),
+    );
     const pc = pcMons
-      .map((p) => toEntry(p, 'PC · by base stats'))
+      .map((p) =>
+        toEntry(
+          p,
+          'PC · by base stats',
+          p.location === 'party' ? `PC (now ${savedAt(p)})` : savedAt(p),
+        ),
+      )
       .sort((a, b) => b.mon.baseStatTotal - a.mon.baseStatTotal);
-    return [...team.map((p) => toEntry(p, 'Team')), ...pc];
+    return [...teamEntries, ...pc];
   });
 
   protected readonly visible = computed(() => {
@@ -305,6 +322,13 @@ export class SaveEditorPage {
   /** The level field cannot go above the level cap */
   protected readonly maxLevel = computed(() => Math.min(100, this.levelCap()));
 
+  protected readonly levelLocked = computed(() => {
+    const parsed = this.selected()?.parsed;
+    if (!parsed) return false;
+    const rate = this.db.species.get(parsed.speciesId)?.growthRate;
+    return !rate || !followsCurve(parsed, rate);
+  });
+
   /** The selected Pokémon is already above the level cap */
   protected readonly aboveCap = computed(() => (this.selected()?.mon.level ?? 0) > this.levelCap());
 
@@ -376,7 +400,7 @@ export class SaveEditorPage {
     const movesChanged = moves.some((id, i) => id !== currentMoves[i]);
     return {
       species: this.evolveTo() ?? undefined,
-      level: this.level() !== mon.level ? this.level() : undefined,
+      level: !this.levelLocked() && this.level() !== mon.level ? this.level() : undefined,
       nature: this.nature() !== (mon.nature?.id ?? 0) ? this.nature() : undefined,
       shiny: this.shiny() !== mon.isShiny ? this.shiny() : undefined,
       ability: this.ability() !== this.currentAbility() ? this.ability() : undefined,

@@ -1,7 +1,12 @@
 import type { PokemonLookup } from './pokemon.models';
-import type { ParsedPokemon, Stats } from './save-file-parser';
+import type { ParsedPokemon, ParsedSave, Stats } from './save-file-parser';
 import { SaveFileWriter } from './save-file-writer';
-import { experienceForLevel, levelFromExperience, MAX_LEVEL } from '../shared/experience';
+import {
+  experienceForLevel,
+  type GrowthRate,
+  levelFromExperience,
+  MAX_LEVEL,
+} from '../shared/experience';
 
 const PARTY_LIST_OFFSET = 0x38;
 const PARTY_MON_SIZE = 100;
@@ -12,6 +17,9 @@ const PC_SECTION_DATA_SIZE = 0xf80;
 const PC_MAIN_HEADER = 4;
 const PC_EXTRA_SECTION = 0;
 const PC_EXTRA_OFFSET = 0xb0;
+const PC_MAIN_SLOTS = 562;
+const PC_EXTRA_SLOTS = 63;
+const PARTY_COUNT_OFFSET = 0x34;
 
 /** Nickname: 10 bytes at 0x08 in both formats */
 const NICKNAME = 0x08;
@@ -96,6 +104,7 @@ export class SaveEditor {
     if (!species?.growthRate) {
       throw new SaveEditError(`Unknown growth rate for species #${mon.speciesId}.`);
     }
+    if (!followsCurve(mon, species.growthRate)) throw curveError(species.name);
     const experience = experienceForLevel(species.growthRate, target);
     const bytes = this.locate(mon);
 
@@ -170,6 +179,7 @@ export class SaveEditor {
     if (!to) throw new SaveEditError(`Unknown species #${speciesId}.`);
     const bytes = this.locate(mon);
     if (speciesId === mon.speciesId) return mon;
+    if (from?.growthRate && !followsCurve(mon, from.growthRate)) throw curveError(from.name);
 
     const isParty = mon.location === 'party';
     bytes.setU16(isParty ? PARTY.species : BOX.species, speciesId);
@@ -282,6 +292,127 @@ export class SaveEditor {
     return bytes;
   }
 
+  setParty(team: readonly ParsedPokemon[], save: ParsedSave): void {
+    if (team.length < 1 || team.length > 6) {
+      throw new SaveEditError('The team needs 1 to 6 Pokémon.');
+    }
+    const key = (p: ParsedPokemon) => `${p.personality}:${p.trainerId}:${p.secretId}`;
+    const joining = new Set(team.map(key));
+    const partyBytes = team.map((mon) =>
+      mon.location === 'party' ? this.read(this.locate(mon), PARTY_MON_SIZE) : this.toParty(mon),
+    );
+    const leaving = save.team.filter((p) => !joining.has(key(p)));
+    const leavingBytes = leaving.map((mon) => this.toBox(mon));
+
+    // Slots freed by the newcomers, then the empty ones
+    const free: number[][] = [];
+    for (const mon of team.filter((p) => p.location === 'box')) {
+      const offsets = this.byteOffsets(mon);
+      offsets.forEach((o) => this.writer.view.setUint8(o, 0));
+      free.push(offsets);
+    }
+    for (const slot of this.emptyBoxSlots()) {
+      if (free.length >= leavingBytes.length) break;
+      free.push(slot);
+    }
+    if (free.length < leavingBytes.length) {
+      throw new SaveEditError('The PC is full: no room for the Pokémon leaving the team.');
+    }
+    leavingBytes.forEach((data, i) =>
+      free[i].forEach((o, j) => this.writer.view.setUint8(o, data[j])),
+    );
+
+    const partyStart = this.writer.sectionOffset(1) + PARTY_LIST_OFFSET;
+    for (let slot = 0; slot < 6; slot++) {
+      const data = partyBytes[slot] ?? new Uint8Array(PARTY_MON_SIZE);
+      data.forEach((b, j) => this.writer.view.setUint8(partyStart + slot * PARTY_MON_SIZE + j, b));
+    }
+    this.writer.view.setUint32(
+      this.writer.sectionOffset(1) + PARTY_COUNT_OFFSET,
+      team.length,
+      true,
+    );
+  }
+
+  private read(bytes: MonBytes, size: number): Uint8Array {
+    return Uint8Array.from(range(size), (i) => bytes.getU8(i));
+  }
+
+  /** Byte offsets of every empty PC slot, main boxes first */
+  private emptyBoxSlots(): number[][] {
+    const slots: number[][] = [];
+    const empty = (offsets: number[]) =>
+      offsets.slice(0, 8).every((o) => this.writer.view.getUint8(o) === 0);
+    for (let k = 0; k < PC_MAIN_SLOTS; k++) {
+      const offsets = this.byteOffsets({
+        location: 'box',
+        region: 'main',
+        box: Math.floor(k / SLOTS_PER_BOX) + 1,
+        slot: (k % SLOTS_PER_BOX) + 1,
+      } as ParsedPokemon);
+      if (empty(offsets)) slots.push(offsets);
+    }
+    for (let k = 0; k < PC_EXTRA_SLOTS; k++) {
+      const offsets = this.byteOffsets({
+        location: 'box',
+        region: 'extra',
+        slot: k + 1,
+      } as ParsedPokemon);
+      if (empty(offsets)) slots.push(offsets);
+    }
+    return slots;
+  }
+
+  private toParty(mon: ParsedPokemon): Uint8Array {
+    const box = this.read(this.locate(mon), BOX_MON_SIZE);
+    const species = this.lookup.species.get(mon.speciesId);
+    if (!species?.growthRate) {
+      throw new SaveEditError(
+        `${species?.name ?? 'This Pokémon'}: its level is unknown (experience curve), it cannot join the team from here.`,
+      );
+    }
+    const party = new Uint8Array(PARTY_MON_SIZE);
+    const view = new DataView(party.buffer);
+    party.set(box.subarray(0, 0x1c), 0);
+    // Growth: species, item, XP, PP Ups, friendship, ball
+    party.set(box.subarray(0x1c, 0x27), 0x20);
+    mon.moves.forEach((id, i) => {
+      view.setUint16(0x2c + i * 2, id, true);
+      const ups = (mon.ppBonuses >> (2 * i)) & 3;
+      const base = this.lookup.moves.get(id)?.basePp ?? 0;
+      party[0x34 + i] = Math.floor((base * (5 + ups)) / 5);
+    });
+    // EVs (contest stats stay 0), then Misc
+    party.set(box.subarray(0x2c, 0x32), 0x38);
+    party.set(box.subarray(0x32, 0x3a), 0x44);
+    // Status 0, no mail
+    party[0x55] = 0xff;
+    const level = levelFromExperience(species.growthRate, mon.experience);
+    party[PARTY.level] = level;
+    const bytes = new MonBytes(view, range(PARTY_MON_SIZE));
+    bytes.setU16(PARTY.currentHp, 1);
+    bytes.setU16(PARTY.maxHp, 1);
+    this.refreshPartyStats(bytes, { ...mon, location: 'party' }, level, mon.personality);
+    return party;
+  }
+
+  private toBox(mon: ParsedPokemon): Uint8Array {
+    const party = this.read(this.locate(mon), PARTY_MON_SIZE);
+    const box = new Uint8Array(BOX_MON_SIZE);
+    box.set(party.subarray(0, 0x1c), 0);
+    box.set(party.subarray(0x20, 0x2b), 0x1c);
+    let packed = 0n;
+    [0, 1, 2, 3].forEach((i) => {
+      const id = party[0x2c + i * 2] | (party[0x2d + i * 2] << 8);
+      if (id > MAX_BOX_MOVE_ID) throw new SaveEditError(`Move #${id} cannot be stored in the PC.`);
+      packed |= BigInt(id) << BigInt(10 * i);
+    });
+    for (let i = 0; i < 5; i++) box[0x27 + i] = Number((packed >> BigInt(8 * i)) & 0xffn);
+    box.set(party.subarray(0x38, 0x3e), 0x2c);
+    box.set(party.subarray(0x44, 0x4c), 0x32);
+    return box;
+  }
+
   /** File offset of every byte of the Pokémon */
   private byteOffsets(mon: ParsedPokemon): number[] {
     if (mon.location === 'party') {
@@ -389,6 +520,21 @@ export function findPersonality(
     }
   }
   throw new SaveEditError('No personality found for this nature and shininess.');
+}
+
+export function followsCurve(mon: ParsedPokemon, rate: GrowthRate): boolean {
+  if (mon.location !== 'party' || !mon.level) return true;
+  if (mon.level >= MAX_LEVEL) return mon.experience >= experienceForLevel(rate, MAX_LEVEL);
+  return (
+    mon.experience >= experienceForLevel(rate, mon.level) &&
+    mon.experience < experienceForLevel(rate, mon.level + 1)
+  );
+}
+
+function curveError(species: string): SaveEditError {
+  return new SaveEditError(
+    `${species}: Radical Red uses another experience curve for this species. Level it in game.`,
+  );
 }
 
 /** Gender thresholds of the species gender ratios (female when the byte is below) */

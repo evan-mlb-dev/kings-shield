@@ -2,11 +2,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TestBed } from '@angular/core/testing';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
+import { Pokemon } from './pokemon.models';
 import { evolutionsOf } from '../shared/evolutions';
 import { experienceForLevel } from '../shared/experience';
 import {
   computeStats,
   findPersonality,
+  followsCurve,
   isShinyPersonality,
   SaveEditor,
   sameGenderByte,
@@ -279,6 +281,68 @@ describe.skipIf(!hasSave)('SaveEditor (real save)', () => {
     expect(() => editor.setHeldItem(save.team[0], 99999)).toThrow();
   });
 
+  it('makes another team the party: PC Pokémon join it, party ones go to the PC', () => {
+    const fromPc = save.pc
+      .filter((p) => !p.isEgg && db.species.get(p.speciesId)?.growthRate)
+      .slice(0, 2);
+    const team = [fromPc[0], save.team[1], fromPc[1], save.team[0]];
+    editor.setParty(team, save);
+    const after = reparse();
+
+    // Party in that order, nothing lost nor duplicated
+    expect(after.team.map((p) => p.personality)).toEqual(team.map((p) => p.personality));
+    expect(after.team.map((p) => p.slot)).toEqual([1, 2, 3, 4]);
+    const all = (s: ParsedSave) => [...s.team, ...s.pc].map((p) => p.personality).sort();
+    expect(all(after)).toEqual(all(save));
+    for (const left of save.team.slice(2)) {
+      expect(after.pc.some((p) => p.personality === left.personality)).toBe(true);
+    }
+
+    const same = (a: ParsedPokemon, b: ParsedPokemon) => {
+      for (const field of [
+        'nickname',
+        'speciesId',
+        'experience',
+        'moves',
+        'ivs',
+        'evs',
+        'heldItem',
+        'friendship',
+        'abilitySlot',
+        'hiddenAbility',
+        'metLocation',
+        'isShiny',
+      ] as const) {
+        expect(b[field]).toEqual(a[field]);
+      }
+    };
+    for (const p of [...after.team, ...after.pc]) {
+      const before = [...save.team, ...save.pc].find((x) => x.personality === p.personality)!;
+      same(before, p);
+    }
+
+    for (const mon of fromPc) {
+      const joined = after.team.find((p) => p.personality === mon.personality)!;
+      const species = db.species.get(mon.speciesId)!;
+      expect(joined.level).toBe(Pokemon.fromParsed(mon, db).level);
+      const stats = computeStats(
+        species.baseStats,
+        mon.ivs,
+        mon.evs,
+        joined.level!,
+        db.natures[mon.personality % 25],
+        false,
+      );
+      expect(joined.stats!.maxHp).toBe(stats.hp);
+      expect(joined.currentHp).toBe(stats.hp);
+      expect(joined.pp.every((pp) => pp > 0)).toBe(true);
+    }
+  });
+
+  it('refuses an empty team', () => {
+    expect(() => editor.setParty([], save)).toThrow();
+  });
+
   it('refuses an ability the species does not have', () => {
     const mon = save.team.find((p) => !db.species.get(p.speciesId)!.abilityIds[2])!;
     expect(() => editor.setAbility(mon, 1)).toThrow();
@@ -316,5 +380,24 @@ describe('sameGenderByte', () => {
         for (const t of [31, 63, 127, 191]) expect(c < t).toBe(byte < t);
       }
     }
+  });
+});
+
+describe('Radical Red experience curves', () => {
+  it('uses the curves seen in real saves, and none when unknown', () => {
+    const db = TestBed.inject(PokemonDb);
+    const rate = (name: string) =>
+      [...db.species.values()].find((s) => s.name === name)?.growthRate;
+    expect(rate('Iron Thorns')).toBe('medium-fast');
+    expect(rate('Pawmot')).toBe('slow');
+    expect(rate('Varoom')).toBeNull();
+    expect(rate('Charmander')).toBe('medium-slow');
+  });
+
+  it('tells when a party Pokémon does not follow a curve', () => {
+    const mon = { location: 'party', level: 36, experience: 49130 } as ParsedPokemon;
+    expect(followsCurve(mon, 'medium-fast')).toBe(true);
+    expect(followsCurve(mon, 'slow')).toBe(false);
+    expect(followsCurve({ ...mon, location: 'box', level: undefined }, 'slow')).toBe(true);
   });
 });
