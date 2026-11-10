@@ -94,6 +94,7 @@ export class PokemonDb implements PokemonLookup {
           m.pp,
           m.description,
           (m as { spread?: MoveSpread }).spread ?? null,
+          (m as { priority?: number }).priority ?? 0,
         ),
       );
     }

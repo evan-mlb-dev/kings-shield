@@ -54,7 +54,12 @@ import { typeColor } from '../../shared/type-colors';
       [cdkConnectedOverlayPositions]="positions"
     >
       @if (move(); as move) {
-        <div class="move-tooltip" role="tooltip" [style.--move-color]="color()">
+        <div
+          class="move-tooltip"
+          role="tooltip"
+          [class.with-priority]="!!move.priority"
+          [style.--move-color]="color()"
+        >
           <div class="tooltip-head">
             <app-move-category-icon [category]="move.category" />
             <b>{{ move.name }}</b>
@@ -77,6 +82,12 @@ import { typeColor } from '../../shared/type-colors';
               <dt>Category</dt>
               <dd>{{ move.category }}</dd>
             </div>
+            @if (move.priority) {
+              <div class="priority" [class.negative]="move.priority < 0">
+                <dt>Priority</dt>
+                <dd>{{ move.priority > 0 ? '+' : '' }}{{ move.priority }}</dd>
+              </div>
+            }
           </dl>
           @if (move.description) {
             <p class="tooltip-text">{{ move.description }}</p>
@@ -148,6 +159,15 @@ import { typeColor } from '../../shared/type-colors';
       color: #f0c060;
     }
 
+    .priority dd {
+      font-weight: 700;
+      color: #7ee08a;
+    }
+
+    .priority.negative dd {
+      color: #ff8a82;
+    }
+
     .tooltip-spread {
       margin: 0;
       font-size: 0.72rem;
@@ -213,9 +233,14 @@ import { typeColor } from '../../shared/type-colors';
       border-radius: 999px;
     }
 
+    .move-tooltip.with-priority {
+      width: 340px;
+    }
+
     .tooltip-stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
       gap: 4px;
       margin: 0;
 

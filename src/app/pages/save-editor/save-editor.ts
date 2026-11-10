@@ -281,12 +281,26 @@ export class SaveEditorPage {
   }
 
   protected isAllowed(evolution: Evolution): boolean {
-    return evolution.kind !== 'other' && !this.isBlockedByCap(evolution);
+    return (
+      evolution.kind !== 'other' &&
+      !this.missingItems(evolution).length &&
+      !this.isBlockedByCap(evolution)
+    );
+  }
+
+  private missingItems(evolution: Evolution): string[] {
+    const bag = this.session.holdableItems();
+    const owned = new Set([...(bag?.items ?? []), ...(bag?.berries ?? [])]);
+    return evolution.items
+      .filter((id) => !owned.has(id))
+      .map((id) => this.db.items.get(id)?.name ?? 'an item');
   }
 
   /** Why an evolution cannot be picked, shown next to it */
   protected blockReason(evolution: Evolution): string {
     if (evolution.kind === 'other') return '(not allowed: do it in the game)';
+    const missing = this.missingItems(evolution);
+    if (missing.length) return `(needs ${missing.join(' + ')} in the bag)`;
     return this.isBlockedByCap(evolution) ? '(above the level cap)' : '';
   }
 
@@ -311,6 +325,8 @@ export class SaveEditorPage {
   protected readonly evolutionProblem = computed(() => {
     const evolution = this.evolutions().find((e) => e.speciesId === this.evolveTo());
     if (evolution?.kind === 'other') return 'This evolution is not allowed: do it in the game.';
+    const missing = evolution ? this.missingItems(evolution) : [];
+    if (missing.length) return `Needs ${missing.join(' + ')} in the bag.`;
     if (!evolution?.level) return null;
     if (this.isBlockedByCap(evolution)) {
       return `Evolves at level ${evolution.level}: above the level cap (${this.levelCap()}).`;

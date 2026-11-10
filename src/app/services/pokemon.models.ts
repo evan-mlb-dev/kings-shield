@@ -78,6 +78,7 @@ export class Move {
     public readonly basePp: number,
     public readonly description = '',
     public readonly spread: MoveSpread | null = null,
+    public readonly priority = 0,
   ) {
     Object.freeze(this);
   }

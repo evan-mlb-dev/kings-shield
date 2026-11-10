@@ -1,12 +1,16 @@
 import evolutionsJson from '../data/evolutions.json';
 import type { PokemonLookup } from '../services/pokemon.models';
 
-const LEVEL_METHODS = new Set([4, 8, 9, 10, 11, 12, 13]);
+const LEVEL_METHODS = new Set([4, 8, 9, 10, 11, 12, 13, 22, 23, 28]);
 const FRIENDSHIP_METHODS = new Set([1, 2, 3]);
+const ITEM_METHOD = 7;
 const LEVEL_NOTES: Readonly<Record<number, string>> = {
   8: ' (Atk > Def)',
   9: ' (Atk = Def)',
   10: ' (Atk < Def)',
+  22: ' (night)',
+  23: ' (day)',
+  28: ' (dusk)',
 };
 
 const EVOLUTIONS = evolutionsJson as unknown as Record<string, [number, number, number][]>;
@@ -16,7 +20,9 @@ export interface Evolution {
   name: string;
   how: string;
   level: number | null;
-  kind: 'level' | 'friendship' | 'other';
+  kind: 'level' | 'friendship' | 'item' | 'other';
+  /** Items it needs (both steps of a two-step evolution) */
+  items: number[];
   via?: string;
 }
 
@@ -31,9 +37,12 @@ export function evolutionsOf(speciesId: number, lookup: PokemonLookup): Evolutio
       kind:
         first.kind === 'other' || second.kind === 'other'
           ? 'other'
-          : first.kind === 'level' || second.kind === 'level'
-            ? 'level'
-            : 'friendship',
+          : first.kind === 'item' || second.kind === 'item'
+            ? 'item'
+            : first.kind === 'level' || second.kind === 'level'
+              ? 'level'
+              : 'friendship',
+      items: [...first.items, ...second.items],
       via: first.name,
     })),
   );
@@ -54,7 +63,10 @@ function directEvolutionsOf(speciesId: number, lookup: PokemonLookup): Evolution
         ? ('level' as const)
         : FRIENDSHIP_METHODS.has(method)
           ? ('friendship' as const)
-          : ('other' as const),
+          : method === ITEM_METHOD
+            ? ('item' as const)
+            : ('other' as const),
+      items: method === ITEM_METHOD ? [param] : [],
     }));
 }
 
