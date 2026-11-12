@@ -1,10 +1,11 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { Pokemon } from '../../services/pokemon.models';
 import { ItemIcon } from '../../shared/icons/item-icon';
 import { MoveCategoryIcon } from '../../shared/icons/move-category-icon';
 import { PokemonSprite } from '../../shared/icons/pokemon-sprite';
 import { TypeIcon } from '../../shared/icons/type-icon';
 import { typeColor } from '../../shared/type-colors';
+import { SidePanelState } from '../../states/side-panel';
 
 /** A Pokémon knows at most 4 moves */
 const MAX_MOVES = 4;
@@ -22,6 +23,9 @@ const MAX_MOVES = 4;
   },
 })
 export class PokemonCard {
+  /** The Smogon link opens the builds in the side panel */
+  protected readonly sidePanel = inject(SidePanelState);
+
   readonly pokemon = input<Pokemon | null>(null);
   readonly variant = input<'full' | 'mini'>('full');
 

@@ -160,10 +160,15 @@
             @if (smogonLink(); as link) {
               <a
                 class="smogon-link"
+                [class.active]="smogonOpen()"
                 [href]="link.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                [title]="'Smogon builds for ' + link.name + ' (opens in a new tab)'"
+                [attr.aria-expanded]="smogonOpen()"
+                [title]="
+                  'Smogon builds for ' + link.name + ' in a side panel (Ctrl + click: new tab)'
+                "
+                (click)="toggleSmogon($event)"
               >
                 Smogon builds
                 <svg viewBox="0 0 24 24" aria-hidden="true">

@@ -104,11 +104,16 @@
         @if (mon.smogonUrl; as url) {
           <a
             class="smogon-link"
+            [class.active]="sidePanel.page()?.url === url"
             [href]="url"
             target="_blank"
             rel="noopener noreferrer"
-            [title]="'Smogon builds for ' + mon.speciesName"
-            [attr.aria-label]="'Smogon builds for ' + mon.speciesName + ' (opens in a new tab)'"
+            [title]="
+              'Smogon builds for ' + mon.speciesName + ' in a side panel (Ctrl + click: new tab)'
+            "
+            [attr.aria-label]="'Smogon builds for ' + mon.speciesName"
+            [attr.aria-expanded]="sidePanel.page()?.url === url"
+            (click)="sidePanel.handleClick($event, { url, title: 'Smogon · ' + mon.speciesName })"
             (mousedown)="$event.stopPropagation()"
             (dblclick)="$event.stopPropagation()"
           >

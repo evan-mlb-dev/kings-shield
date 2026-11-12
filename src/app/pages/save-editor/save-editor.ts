@@ -26,6 +26,9 @@ import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
 import { LevelCapState } from '../../states/level-cap';
 import { SaveEditorSession } from '../../states/save-editor-session';
+import { SidePanelState } from '../../states/side-panel';
+
+const SMOGON_DEX = 'https://www.smogon.com/dex/';
 import { type AbilityChoice, followsCurve } from '../../services/save-editor';
 
 /** A Pokémon of the working copy, as listed */
@@ -256,6 +259,30 @@ export class SaveEditorPage {
     }));
     return { rows, total: rows.reduce((sum, r) => sum + r.value, 0) };
   });
+
+  protected readonly sidePanel = inject(SidePanelState);
+
+  private readonly smogonPage = computed(() => {
+    const link = this.smogonLink();
+    return link ? { url: link.url, title: `Smogon · ${link.name}` } : null;
+  });
+
+  private readonly followSelection = effect(() => {
+    const page = this.smogonPage();
+    const shown = untracked(() => this.sidePanel.page());
+    if (page && shown?.url.startsWith(SMOGON_DEX) && shown.url !== page.url) {
+      untracked(() => this.sidePanel.open(page));
+    }
+  });
+
+  protected readonly smogonOpen = computed(
+    () => !!this.smogonPage() && this.sidePanel.page()?.url === this.smogonPage()!.url,
+  );
+
+  protected toggleSmogon(event: MouseEvent): void {
+    const page = this.smogonPage();
+    if (page) this.sidePanel.handleClick(event, page);
+  }
 
   protected readonly smogonLink = computed(() => {
     const entry = this.selected();

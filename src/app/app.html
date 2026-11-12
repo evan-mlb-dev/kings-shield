@@ -1,5 +1,9 @@
 <app-header />
-<main>
+<main [class.with-side]="!!sidePanel.page()">
   <router-outlet />
 </main>
 <app-footer />
+
+@if (sidePanel.page(); as page) {
+  <app-side-browser [url]="page.url" [title]="page.title" (closed)="sidePanel.close()" />
+}

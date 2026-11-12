@@ -298,7 +298,8 @@
     height: 10px;
   }
 
-  &:hover {
+  &:hover,
+  &.active {
     background: rgb(135 116 245 / 30%);
     border-color: var(--primary-color);
     opacity: 1;

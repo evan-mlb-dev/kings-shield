@@ -573,6 +573,10 @@ app-move-learner {
   border-left: 1px solid rgb(255 255 255 / 10%);
 }
 
+.smogon-link.active {
+  border-color: var(--primary-color);
+}
+
 .smogon-link {
   display: inline-flex;
   gap: 6px;

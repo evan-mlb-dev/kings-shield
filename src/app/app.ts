@@ -3,13 +3,15 @@ import { afterNextRender, Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Footer } from './components/footer/footer';
 import { Header } from './components/header/header';
+import { SideBrowser } from './components/side-browser/side-browser';
+import { SidePanelState } from './states/side-panel';
 
 const SPLASH_MAX_WAIT_MS = 8000;
 const SPLASH_MIN_MS = 400;
 const SPLASH_FADE_MS = 600;
 
 @Component({
-  imports: [RouterOutlet, Header, Footer],
+  imports: [RouterOutlet, Header, Footer, SideBrowser],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
@@ -19,6 +21,7 @@ const SPLASH_FADE_MS = 600;
 })
 export class App {
   private document = inject(DOCUMENT);
+  protected readonly sidePanel = inject(SidePanelState);
   private readonly startedAt = performance.now();
 
   protected readonly title = signal('kings-shield');
