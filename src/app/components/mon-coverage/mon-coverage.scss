@@ -1,0 +1,66 @@
+:host {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 20px;
+}
+
+.label {
+  flex-shrink: 0;
+  width: 54px;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+
+.types {
+  --type-icon-size: 17px;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.type {
+  display: inline-flex;
+  padding: 1px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+
+  &.stab {
+    border-color: #f0d58c;
+  }
+
+  &.immune {
+    border-color: #7ee08a;
+  }
+}
+
+.none {
+  font-size: 0.7rem;
+  opacity: 0.4;
+}
+
+.hits .label {
+  color: #7ee08a;
+}
+
+.resists .label {
+  color: #7fb2ff;
+}
+
+.weak .label {
+  color: #ffb36b;
+}
+
+.very-weak .label {
+  color: #ff6b5e;
+  opacity: 0.9;
+}

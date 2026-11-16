@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
-import { learnableMoves, tmLabel } from './learnset';
+import { learnableMoves, progressStage, tmLabel } from './learnset';
 
 describe('learnableMoves', () => {
   const db = () => TestBed.inject(PokemonDb);
@@ -43,5 +43,29 @@ describe('learnableMoves', () => {
   it('labels TMs and HMs', () => {
     expect(tmLabel(5)).toBe('TM05');
     expect(tmLabel(121)).toBe('HM01');
+  });
+
+  it('offers the move tutors the player has reached (Iron Thorns: Dragon Dance at Victory Road)', () => {
+    const before = learnableMoves(idOf('Iron Thorns'), 50, new Set(), db(), progressStage(44));
+    expect(byName(before, 'Dragon Dance')).toMatchObject({
+      available: false,
+      note: 'Lv 76 · Tutor after Brendan',
+      tutorPlace: 'Victory Road 2F',
+    });
+    const after = learnableMoves(idOf('Iron Thorns'), 50, new Set(), db(), progressStage(85));
+    expect(byName(after, 'Dragon Dance')).toMatchObject({ available: true, note: 'Tutor' });
+    // Unknown progress: no tutor
+    expect(
+      byName(learnableMoves(idOf('Iron Thorns'), 50, new Set(), db()), 'Dragon Dance')!.available,
+    ).toBe(false);
+    expect(byName(after, 'Blast Burn')).toBeUndefined();
+  });
+
+  it('finds the progress stage from the level cap: the next boss', () => {
+    expect(progressStage(15)).toBe(0); // Brock
+    expect(progressStage(27)).toBe(2); // Misty
+    expect(progressStage(30)).toBe(3); // Surge
+    expect(progressStage(44)).toBe(4); // Erika
+    expect(progressStage(100)).toBe(17); // Post-game
   });
 });

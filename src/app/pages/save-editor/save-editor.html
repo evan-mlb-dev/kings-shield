@@ -138,15 +138,14 @@
               [name]="preview?.name ?? entry.mon.speciesName"
               [shiny]="shiny()"
             />
-            <div>
-              <h2>{{ entry.mon.nickname }}</h2>
+            <div class="identity">
+              <h2 [title]="entry.mon.nickname">{{ entry.mon.nickname }}</h2>
               <p class="row-meta">
                 @if (preview) {
                   <span class="evolving">{{ entry.mon.speciesName }} → {{ preview.name }}</span>
                 } @else {
                   {{ entry.mon.speciesName }}
                 }
-                · {{ entry.position }}
               </p>
               <span class="types">
                 @for (type of preview?.types ?? entry.mon.types; track type.id) {
@@ -157,6 +156,11 @@
             <div class="shiny-section">
               <app-shiny-toggle [(value)]="shiny" />
             </div>
+            <app-mon-coverage
+              class="head-coverage"
+              [types]="preview?.types ?? entry.mon.types"
+              [moves]="slotMoves()"
+            />
             @if (smogonLink(); as link) {
               <a
                 class="smogon-link"

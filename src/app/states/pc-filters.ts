@@ -3,10 +3,11 @@ import { effect, Injectable, signal } from '@angular/core';
 const PC_COLLAPSED_KEY = 'king_shield_pc_collapsed';
 const PARTNER_PC_COLLAPSED_KEY = 'king_shield_partner_pc_collapsed';
 const PC_ORDER_KEY = 'king_shield_pc_order';
+const PC_RESERVE_KEY = 'king_shield_pc_reserve';
 
-function readOrder(): string[] | null {
+function readOrder(key = PC_ORDER_KEY): string[] | null {
   try {
-    const raw = localStorage.getItem(PC_ORDER_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -42,7 +43,29 @@ export class PcFiltersState {
 
   readonly pcOrder = signal<readonly string[] | null>(readOrder());
 
+  readonly reserve = signal<readonly string[]>(readOrder(PC_RESERVE_KEY) ?? []);
+
+  addToReserve(key: string, index = this.reserve().length): void {
+    this.reserve.update((keys) => {
+      const next = keys.filter((k) => k !== key);
+      next.splice(Math.max(0, Math.min(index, next.length)), 0, key);
+      return next;
+    });
+  }
+
+  removeFromReserve(key: string): void {
+    this.reserve.update((keys) => keys.filter((k) => k !== key));
+  }
+
   constructor() {
+    effect(() => {
+      const reserve = this.reserve();
+      try {
+        localStorage.setItem(PC_RESERVE_KEY, JSON.stringify(reserve));
+      } catch {
+        // Storage unavailable: the reserve only lasts for this visit
+      }
+    });
     effect(() => {
       const order = this.pcOrder();
       try {

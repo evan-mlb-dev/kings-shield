@@ -254,6 +254,48 @@
             </p>
           }
         </div>
+
+        @if (gameState.pkmnData()) {
+          <section class="reserve-section" aria-labelledby="reserve-title">
+            <h3 class="reserve-title" id="reserve-title">
+              Reserve <span class="count">{{ visibleReserve().length }}</span>
+            </h3>
+            <div
+              class="pc reserve"
+              cdkDropList
+              [id]="reserveListId"
+              cdkDropListOrientation="mixed"
+              [cdkDropListSortingDisabled]="!filter.canReorder()"
+              [cdkDropListData]="visibleReserve()"
+              (cdkDropListDropped)="dropOnReserve($event)"
+            >
+              @for (entry of visibleReserve(); track entry.key) {
+                <div
+                  class="pc-slot"
+                  cdkDrag
+                  [cdkDragData]="entry"
+                  [cdkDragDisabled]="drafting()"
+                  [class.sl-highlight]="soulLink.highlightedMine() === entry.key"
+                  (mouseenter)="hoverMine(entry)"
+                  (mouseleave)="soulLink.unhover()"
+                  (dblclick)="add(entry)"
+                >
+                  <app-pokemon-card [pokemon]="entry.mon" variant="mini" />
+                  <app-pc-badges [filter]="filter" [entry]="entry" />
+                  <div class="drag-placeholder" *cdkDragPlaceholder></div>
+                </div>
+              } @empty {
+                <p class="empty-message">
+                  {{
+                    reserve().length
+                      ? 'No Pokémon of the reserve matches these filters.'
+                      : 'Drag Pokémon here to set them aside.'
+                  }}
+                </p>
+              }
+            </div>
+          </section>
+        }
       </div>
     }
 

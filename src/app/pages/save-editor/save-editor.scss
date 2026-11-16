@@ -573,6 +573,22 @@ app-move-learner {
   border-left: 1px solid rgb(255 255 255 / 10%);
 }
 
+.identity {
+  flex-shrink: 0;
+  width: 190px;
+
+  h2,
+  .row-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.head-coverage {
+  margin-left: 28px;
+}
+
 .smogon-link.active {
   border-color: var(--primary-color);
 }

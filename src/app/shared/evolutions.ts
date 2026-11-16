@@ -4,6 +4,7 @@ import type { PokemonLookup } from '../services/pokemon.models';
 const LEVEL_METHODS = new Set([4, 8, 9, 10, 11, 12, 13, 22, 23, 28]);
 const FRIENDSHIP_METHODS = new Set([1, 2, 3]);
 const ITEM_METHOD = 7;
+const MOVE_METHOD = 26;
 const LEVEL_NOTES: Readonly<Record<number, string>> = {
   8: ' (Atk > Def)',
   9: ' (Atk = Def)',
@@ -20,10 +21,13 @@ export interface Evolution {
   name: string;
   how: string;
   level: number | null;
-  kind: 'level' | 'friendship' | 'item' | 'other';
+  kind: 'level' | 'friendship' | 'item' | 'move' | 'other';
   /** Items it needs (both steps of a two-step evolution) */
   items: number[];
+  /** Moves it must know (both steps of a two-step evolution) */
+  moves: number[];
   via?: string;
+  viaId?: number;
 }
 
 export function evolutionsOf(speciesId: number, lookup: PokemonLookup): Evolution[] {
@@ -39,11 +43,15 @@ export function evolutionsOf(speciesId: number, lookup: PokemonLookup): Evolutio
           ? 'other'
           : first.kind === 'item' || second.kind === 'item'
             ? 'item'
-            : first.kind === 'level' || second.kind === 'level'
-              ? 'level'
-              : 'friendship',
+            : first.kind === 'move' || second.kind === 'move'
+              ? 'move'
+              : first.kind === 'level' || second.kind === 'level'
+                ? 'level'
+                : 'friendship',
       items: [...first.items, ...second.items],
+      moves: [...first.moves, ...second.moves],
       via: first.name,
+      viaId: first.speciesId,
     })),
   );
   const seen = new Set(direct.map((e) => e.speciesId));
@@ -65,8 +73,11 @@ function directEvolutionsOf(speciesId: number, lookup: PokemonLookup): Evolution
           ? ('friendship' as const)
           : method === ITEM_METHOD
             ? ('item' as const)
-            : ('other' as const),
+            : method === MOVE_METHOD
+              ? ('move' as const)
+              : ('other' as const),
       items: method === ITEM_METHOD ? [param] : [],
+      moves: method === MOVE_METHOD ? [param] : [],
     }));
 }
 
@@ -81,6 +92,8 @@ function describe(method: number, param: number, lookup: PokemonLookup): string 
       return 'Friendship (night)';
     case 5:
       return 'Trade';
+    case MOVE_METHOD:
+      return `Knows ${lookup.moves.get(param)?.name ?? 'a move'}`;
     case 6:
     case 7:
       return `${method === 6 ? 'Trade holding' : 'Use'} ${lookup.items.get(param)?.name ?? 'an item'}`;

@@ -15,6 +15,7 @@ describe('evolutionsOf', () => {
         level: 16,
         kind: 'level',
         items: [],
+        moves: [],
       },
     ]);
   });
@@ -52,5 +53,12 @@ describe('evolutionsOf', () => {
     const vileplume = evolutionsOf(idOf('Oddish'), db()).find((e) => e.name === 'Vileplume')!;
     expect(vileplume).toMatchObject({ kind: 'item', via: 'Gloom' });
     expect(vileplume.items.map((id) => db().items.get(id)!.name)).toEqual(['Leaf Stone']);
+  });
+
+  it('evolves by knowing a move (Girafarig: Twin Beam)', () => {
+    const farigiraf = evolutionsOf(idOf('Girafarig'), db()).find((e) => e.name === 'Farigiraf')!;
+    expect(farigiraf.kind).toBe('move');
+    expect(farigiraf.how).toBe('Knows Twin Beam');
+    expect(farigiraf.moves.map((id) => db().moves.get(id)!.name)).toEqual(['Twin Beam']);
   });
 });

@@ -37,8 +37,9 @@
       }
     </ul>
     <p class="hint">
-      Learnable at level {{ level() }}: level-up moves reached, and TMs in the bag. Greyed moves
-      cannot be learned yet. Double-click a move to learn or forget it, or drag it out of its slot.
+      Learnable at level {{ level() }}: level-up moves reached, TMs in the bag, and the move tutors
+      reached (from the level cap). Greyed moves cannot be learned yet. Double-click a move to learn
+      or forget it, or drag it out of its slot.
     </p>
     @if (!tmsKnown()) {
       <p class="hint warning">The TM case could not be read: TMs stay greyed.</p>
@@ -68,8 +69,11 @@
             slots().includes(learnable.move.id)
               ? 'Known: double-click to forget it'
               : learnable.available
-                ? 'Drag onto a slot, or double-click to learn it'
-                : 'Not yet: ' + learnable.note
+                ? (learnable.tutorPlace ? 'Move tutor: ' + learnable.tutorPlace + '. ' : '') +
+                  'Drag onto a slot, or double-click to learn it'
+                : 'Not yet: ' +
+                  learnable.note +
+                  (learnable.tutorPlace ? ' (' + learnable.tutorPlace + ')' : '')
           "
           (dblclick)="toggleMove(learnable)"
         >

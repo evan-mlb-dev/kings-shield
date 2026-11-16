@@ -13,6 +13,7 @@ import { ParsedPokemon } from '../../services/save-file-parser';
 import { AbilityPicker } from '../../components/ability-picker/ability-picker';
 import { ItemPicker } from '../../components/item-picker/item-picker';
 import { ChangesTable } from '../../components/changes-table/changes-table';
+import { MonCoverage } from '../../components/mon-coverage/mon-coverage';
 import { MoveFilters } from '../../components/move-filters/move-filters';
 import { MoveLearner } from '../../components/move-learner/move-learner';
 import { MoveRow } from '../../components/move-row/move-row';
@@ -20,7 +21,7 @@ import { NaturePicker } from '../../components/nature-picker/nature-picker';
 import { ShinyToggle } from '../../components/shiny-toggle/shiny-toggle';
 import { NumberStepper } from '../../components/number-stepper/number-stepper';
 import { Evolution, evolutionsOf } from '../../shared/evolutions';
-import { LearnableMove, learnableMoves } from '../../shared/learnset';
+import { LearnableMove, learnableMoves, progressStage } from '../../shared/learnset';
 import { PokemonSprite } from '../../shared/icons/pokemon-sprite';
 import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
@@ -56,6 +57,7 @@ interface Entry {
     ChangesTable,
     AbilityPicker,
     ItemPicker,
+    MonCoverage,
   ],
   templateUrl: './save-editor.html',
   styleUrl: './save-editor.scss',
@@ -307,12 +309,36 @@ export class SaveEditorPage {
     return evolution.level !== null && evolution.level > this.levelCap();
   }
 
-  protected isAllowed(evolution: Evolution): boolean {
+  protected isAllowed(evolution: Evolution, mon?: Entry): boolean {
     return (
       evolution.kind !== 'other' &&
       !this.missingItems(evolution).length &&
+      !this.missingMoves(evolution, mon).length &&
       !this.isBlockedByCap(evolution)
     );
+  }
+
+  private missingMoves(evolution: Evolution, mon?: Entry): string[] {
+    const entry = mon ?? this.selected();
+    if (!entry || !evolution.moves.length) return [];
+    const level = Math.max(mon ? (entry.mon.level ?? 1) : this.level(), evolution.level ?? 0);
+    const known = mon ? entry.parsed.moves : [...this.moveSlots(), ...entry.parsed.moves];
+    const learnable = new Set<number>(known);
+    for (const species of [entry.parsed.speciesId, evolution.viaId]) {
+      if (species === undefined) continue;
+      for (const l of learnableMoves(
+        species,
+        level,
+        this.session.ownedTms(),
+        this.db,
+        this.stage(),
+      )) {
+        if (l.available) learnable.add(l.move.id);
+      }
+    }
+    return evolution.moves
+      .filter((id) => !learnable.has(id))
+      .map((id) => this.db.moves.get(id)?.name ?? 'a move');
   }
 
   private missingItems(evolution: Evolution): string[] {
@@ -328,6 +354,8 @@ export class SaveEditorPage {
     if (evolution.kind === 'other') return '(not allowed: do it in the game)';
     const missing = this.missingItems(evolution);
     if (missing.length) return `(needs ${missing.join(' + ')} in the bag)`;
+    const moves = this.missingMoves(evolution);
+    if (moves.length) return `(cannot learn ${moves.join(' + ')} yet)`;
     return this.isBlockedByCap(evolution) ? '(above the level cap)' : '';
   }
 
@@ -335,7 +363,9 @@ export class SaveEditorPage {
     () =>
       new Set(
         this.entries()
-          .filter((e) => evolutionsOf(e.parsed.speciesId, this.db).some((x) => this.isAllowed(x)))
+          .filter((e) =>
+            evolutionsOf(e.parsed.speciesId, this.db).some((x) => this.isAllowed(x, e)),
+          )
           .map((e) => e.key),
       ),
   );
@@ -354,6 +384,8 @@ export class SaveEditorPage {
     if (evolution?.kind === 'other') return 'This evolution is not allowed: do it in the game.';
     const missing = evolution ? this.missingItems(evolution) : [];
     if (missing.length) return `Needs ${missing.join(' + ')} in the bag.`;
+    const moves = evolution ? this.missingMoves(evolution) : [];
+    if (moves.length) return `Needs to know ${moves.join(' + ')}: it cannot learn it yet.`;
     if (!evolution?.level) return null;
     if (this.isBlockedByCap(evolution)) {
       return `Evolves at level ${evolution.level}: above the level cap (${this.levelCap()}).`;
@@ -364,6 +396,8 @@ export class SaveEditorPage {
 
   /** The level field cannot go above the level cap */
   protected readonly maxLevel = computed(() => Math.min(100, this.levelCap()));
+
+  private readonly stage = computed(() => progressStage(this.levelCap()));
 
   protected readonly levelLocked = computed(() => {
     const parsed = this.selected()?.parsed;
@@ -420,7 +454,7 @@ export class SaveEditorPage {
     const entry = this.selected();
     if (!entry) return [];
     const species = this.evolveTo() ?? entry.parsed.speciesId;
-    return learnableMoves(species, this.level(), this.session.ownedTms(), this.db);
+    return learnableMoves(species, this.level(), this.session.ownedTms(), this.db, this.stage());
   });
 
   protected readonly allowedMoves = computed(

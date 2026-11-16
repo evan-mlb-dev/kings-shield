@@ -39,6 +39,8 @@ type DropData = number | Entry[];
 
 const FAINTED_LIST_ID = 'fainted-list';
 const FAINTED_TAB_ID = 'fainted-tab';
+/** Drop list id of the reserve, under the PC */
+const RESERVE_LIST_ID = 'reserve-list';
 
 @Component({
   selector: 'app-team-builder',
@@ -68,7 +70,23 @@ export class TeamBuilder {
   protected readonly team = computed<Entry[]>(() =>
     this.gameState.team().map((p) => this.toEntry(p)),
   );
-  private readonly pc = computed<Entry[]>(() => this.gameState.pc().map((p) => this.toEntry(p)));
+  /** Every PC Pokémon (neither in the team nor fainted) */
+  private readonly allPc = computed<Entry[]>(() => this.gameState.pc().map((p) => this.toEntry(p)));
+
+  protected readonly reserveListId = RESERVE_LIST_ID;
+  protected readonly reserve = computed<Entry[]>(() => {
+    const byKey = new Map(this.allPc().map((e) => [e.key, e]));
+    return this.pcFilters
+      .reserve()
+      .map((key) => byKey.get(key))
+      .filter((e): e is Entry => !!e);
+  });
+
+  /** The PC itself: everyone but the reserve */
+  private readonly pc = computed<Entry[]>(() => {
+    const reserved = new Set(this.pcFilters.reserve());
+    return this.allPc().filter((e) => !reserved.has(e.key));
+  });
 
   protected readonly availableMons = computed(() => this.pc().map((e) => e.mon));
 
@@ -164,14 +182,25 @@ export class TeamBuilder {
     );
   });
 
-  /** Search, type / "effective vs" filters and sort of my PC */
   protected readonly filter = new PcFilter(
     this.db,
-    () => this.pc(),
+    () => this.allPc(),
     this.pcFilters.effectiveAgainst,
     this.pcFilters.pcOrder,
   );
-  protected readonly visiblePc = this.filter.visible;
+  protected readonly visiblePc = computed(() => {
+    const reserved = new Set(this.pcFilters.reserve());
+    return this.filter.visible().filter((e) => !reserved.has(e.key));
+  });
+
+  protected readonly visibleReserve = computed(() => {
+    const order = this.pcFilters.reserve();
+    const rank = new Map(order.map((key, i) => [key, i]));
+    const list = this.filter.visible().filter((e) => rank.has(e.key));
+    return this.filter.canReorder()
+      ? [...list].sort((a, b) => rank.get(a.key)! - rank.get(b.key)!)
+      : list;
+  });
 
   protected readonly draggingTeamMember = signal(false);
 
@@ -194,6 +223,7 @@ export class TeamBuilder {
       if (event.previousContainer.id === FAINTED_LIST_ID)
         this.soulLink.revive(event.item.data.parsed);
       this.gameState.placeInTeam(event.item.data.parsed, target);
+      this.pcFilters.removeFromReserve(event.item.data.key);
     }
   }
 
@@ -205,11 +235,28 @@ export class TeamBuilder {
       }
       return;
     }
-    if (event.previousContainer.id === FAINTED_LIST_ID) {
+    if (event.previousContainer.id === RESERVE_LIST_ID) {
+      this.pcFilters.removeFromReserve(event.item.data.key);
+    } else if (event.previousContainer.id === FAINTED_LIST_ID) {
       this.soulLink.revive(event.item.data.parsed);
     } else {
       this.gameState.removeFromTeam(event.item.data.parsed);
     }
+  }
+
+  protected dropOnReserve(event: CdkDragDrop<Entry[], DropData, Entry>): void {
+    const entry = event.item.data;
+    const fromTeam = typeof event.previousContainer.data === 'number';
+    if (!event.isPointerOverContainer) {
+      if (fromTeam) this.gameState.removeFromTeam(entry.parsed);
+      return;
+    }
+    if (fromTeam) this.gameState.removeFromTeam(entry.parsed);
+    if (event.previousContainer.id === FAINTED_LIST_ID) this.soulLink.revive(entry.parsed);
+    const target = event.container.data[event.currentIndex];
+    const keys = this.pcFilters.reserve().filter((k) => k !== entry.key);
+    const index = target && target.key !== entry.key ? keys.indexOf(target.key) : -1;
+    this.pcFilters.addToReserve(entry.key, index >= 0 ? index : keys.length);
   }
 
   protected readonly faintedListId = FAINTED_LIST_ID;
@@ -266,7 +313,10 @@ export class TeamBuilder {
       if (this.soulLink.draft()?.myTurn) this.soulLink.pickMine(entry.parsed);
       return;
     }
-    if (!this.gameState.isTeamFull()) this.gameState.addToTeam(entry.parsed);
+    if (!this.gameState.isTeamFull()) {
+      this.gameState.addToTeam(entry.parsed);
+      this.pcFilters.removeFromReserve(entry.key);
+    }
   }
 
   protected remove(entry: Entry): void {
