@@ -1,5 +1,5 @@
 .partner-pc {
-  max-width: 1440px;
+  max-width: var(--page-max, 1440px);
   padding: 0 20px 20px;
   margin: 0 auto;
 }

@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 20px;
 
-  max-width: 1440px;
+  max-width: var(--page-max, 1440px);
   padding: 20px;
   margin: 0 auto;
 }
@@ -95,6 +95,23 @@
 
   &.cdk-drop-list-dragging {
     border-color: #e5483e;
+  }
+}
+
+.pc-tab {
+  justify-content: space-between;
+  width: 70px;
+  padding-right: 12px;
+  font-size: 0.92rem;
+
+  &.fainted-tab {
+    width: 108px;
+  }
+
+  .count {
+    min-width: 2ch;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 }
 

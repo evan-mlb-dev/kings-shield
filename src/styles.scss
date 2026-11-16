@@ -37,6 +37,51 @@ img {
 }
 
 :root {
+  --page-max: 1440px;
+  --ui-zoom: 1;
+}
+
+@media (width >= 1650px) {
+  :root {
+    --ui-zoom: 1.08;
+  }
+}
+
+@media (width >= 1850px) {
+  :root {
+    --ui-zoom: 1.15;
+  }
+}
+
+@media (width >= 2150px) {
+  :root {
+    --ui-zoom: 1.25;
+  }
+}
+
+@media (width >= 2550px) {
+  :root {
+    --ui-zoom: 1.4;
+  }
+}
+
+html {
+  zoom: var(--ui-zoom);
+}
+
+.cdk-drag-preview {
+  zoom: calc(1 / var(--ui-zoom));
+}
+
+.cdk-overlay-container {
+  zoom: calc(1 / var(--ui-zoom));
+}
+
+.cdk-overlay-pane > * {
+  zoom: var(--ui-zoom);
+}
+
+:root {
   --primary-color: #8774f5;
   --secondary-color: #be8d59;
   --gold-gradient: linear-gradient(180deg, #f0d58c, #c99a3e);

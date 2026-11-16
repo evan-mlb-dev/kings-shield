@@ -1,5 +1,5 @@
 .type-chart-page {
-  max-width: 1440px;
+  max-width: var(--page-max, 1440px);
   padding: 24px 20px 40px;
   margin: 0 auto;
 }
