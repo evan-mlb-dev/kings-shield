@@ -46,3 +46,5 @@ Thumbs.db
 # Save files used for local tests (personal data, never committed)
 test-data/
 *.sav
+# ...except the demo save the site loads before the player brings their own
+!/public/TEST-SAVE.sav
