@@ -5,8 +5,8 @@
   align-items: start;
   justify-content: start;
 
-  @media (width <= 1000px) {
-    grid-template-columns: 1fr;
+  @container form-panel (width < 860px) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -104,6 +104,12 @@ app-move-row.known {
   text-overflow: ellipsis;
   white-space: nowrap;
   opacity: 0.5;
+}
+
+@container form-panel (width < 520px) {
+  .note {
+    display: none;
+  }
 }
 
 .clear-move {

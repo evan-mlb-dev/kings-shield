@@ -279,6 +279,7 @@ ul {
 }
 
 .form-panel {
+  container: form-panel / inline-size;
   min-height: 300px;
 }
 
@@ -361,8 +362,8 @@ app-move-learner {
   align-items: end;
   justify-items: start;
 
-  @media (width <= 1000px) {
-    grid-template-columns: 1fr;
+  @container form-panel (width < 860px) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -503,8 +504,8 @@ app-move-learner {
   align-items: start;
   justify-content: start;
 
-  @media (width <= 1000px) {
-    grid-template-columns: 1fr;
+  @container form-panel (width < 860px) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -587,6 +588,18 @@ app-move-learner {
 
 .head-coverage {
   margin-left: 28px;
+}
+
+@container form-panel (width < 860px) {
+  .mon-head {
+    flex-wrap: wrap;
+  }
+
+  .head-coverage {
+    order: 1;
+    flex-basis: 100%;
+    margin-left: 0;
+  }
 }
 
 .smogon-link.active {
