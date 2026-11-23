@@ -4,6 +4,7 @@ import { RouterOutlet } from '@angular/router';
 import { Footer } from './components/footer/footer';
 import { Header } from './components/header/header';
 import { SideBrowser } from './components/side-browser/side-browser';
+import { Analytics } from './services/analytics';
 import { SidePanelState } from './states/side-panel';
 
 const SPLASH_MAX_WAIT_MS = 8000;
@@ -27,6 +28,7 @@ export class App {
   protected readonly title = signal('kings-shield');
 
   constructor() {
+    inject(Analytics).trackPages();
     afterNextRender(() => this.hideSplashWhenImagesLoaded());
   }
 

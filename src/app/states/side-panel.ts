@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+import { Analytics } from '../services/analytics';
 
 /** A web page shown in the side panel (app-side-browser) */
 export interface SidePage {
@@ -10,6 +11,7 @@ export interface SidePage {
   providedIn: 'root',
 })
 export class SidePanelState {
+  private readonly analytics = inject(Analytics);
   private readonly _page = signal<SidePage | null>(null);
   readonly page = this._page.asReadonly();
 
@@ -29,6 +31,7 @@ export class SidePanelState {
   handleClick(event: MouseEvent, page: SidePage): void {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();
+    if (!this._page()) this.analytics.event('smogon-panel-opened');
     this.toggle(page);
   }
 }

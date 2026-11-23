@@ -1,5 +1,6 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
+import { Analytics } from '../services/analytics';
 import { AbilityChoice, followsCurve, SaveEditError, SaveEditor } from '../services/save-editor';
 import { ParsedPokemon, ParsedSave, SaveFileParser } from '../services/save-file-parser';
 import { SaveFileWriter } from '../services/save-file-writer';
@@ -54,6 +55,7 @@ export class SaveEditorSession {
   private readonly saveBytes = inject(SaveBytesState);
   private readonly gameState = inject(GameStateService);
   private readonly soulLink = inject(SoulLinkService);
+  private readonly analytics = inject(Analytics);
 
   private editor: SaveEditor | null = null;
   private original: Uint8Array | null = null;
@@ -277,6 +279,7 @@ export class SaveEditorSession {
       this.gameState.setSaveName(name);
     }
     this.saveBytes.set(bytes);
+    this.analytics.event('save-downloaded');
     return name;
   }
 

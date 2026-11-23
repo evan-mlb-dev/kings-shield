@@ -1,5 +1,6 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import type { DataConnection, Peer, PeerError } from 'peerjs';
+import { Analytics } from '../services/analytics';
 import { ParsedPokemon } from '../services/save-file-parser';
 import { GameStateService, MAX_TEAM_SIZE, pokemonKey } from './game-state';
 import { LevelCapState } from './level-cap';
@@ -167,6 +168,7 @@ export class SoulLinkService {
   private readonly gameState = inject(GameStateService);
   private readonly runs = inject(RunsState);
   private readonly levelCap = inject(LevelCapState);
+  private readonly analytics = inject(Analytics);
   /** Last level cap received from the partner: not sent back */
   private receivedLevelCap: number | null = null;
   /** Level cap last seen, to send changes only */
@@ -693,6 +695,7 @@ export class SoulLinkService {
         levelCap: this.isHost() ? this.levelCap.explicit() : null,
       });
       this.status.set('connected');
+      this.analytics.event('soul-link-connected');
     });
     conn.on('data', (data) => this.receive(data as Message));
     conn.on('close', () => this.onClosed(conn));
