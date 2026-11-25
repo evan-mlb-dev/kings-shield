@@ -1,6 +1,7 @@
 import type { PokemonLookup } from './pokemon.models';
 import type { ParsedPokemon, ParsedSave, Stats } from './save-file-parser';
 import { SaveFileWriter } from './save-file-writer';
+import { SYMBOL_BYTES } from './gen3-text';
 import {
   experienceForLevel,
   type GrowthRate,
@@ -559,10 +560,7 @@ function encodeText(text: string, length: number): number[] | null {
     else if (c >= 'a' && c <= 'z') out.push(0xd5 + code - 97);
     else if (c >= '0' && c <= '9') out.push(0xa1 + code - 48);
     else if (c === ' ') out.push(0x00);
-    else if (c === '!') out.push(0xab);
-    else if (c === '?') out.push(0xac);
-    else if (c === '.') out.push(0xad);
-    else if (c === '-') out.push(0xae);
+    else if (c in SYMBOL_BYTES) out.push(SYMBOL_BYTES[c]);
     else return null;
   }
   while (out.length < length) out.push(0xff);

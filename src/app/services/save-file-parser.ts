@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import type { ParsedPokemon, Stats } from '../models/pokemon/pokemon';
+import { TEXT_SYMBOLS } from './gen3-text';
 
 export type { ParsedPokemon, Stats };
 
@@ -429,17 +430,13 @@ export class SaveFileParser {
     return (tid ^ sid ^ (personality >>> 16) ^ (personality & 0xffff)) < 8;
   }
 
-  /** Valid Gen 3 text: known characters, then only 0xFF after the terminator. */
+  // Bytes after the 0xFF terminator are ignored: a name the player never typed keeps
+  // leftover garbage there (the game copies the species name without padding).
   private isValidText(bytes: Uint8Array): boolean {
-    let ended = false;
     let length = 0;
     for (const b of bytes) {
-      if (b === 0xff) {
-        ended = true;
-        continue;
-      }
-      if (ended) return false;
-      if (b !== 0 && (b < 0xa1 || b > 0xee)) return false;
+      if (b === 0xff) break;
+      if (b !== 0 && (b < 0xa1 || b > 0xee) && !(b in TEXT_SYMBOLS)) return false;
       length++;
     }
     return length > 0;
@@ -448,14 +445,11 @@ export class SaveFileParser {
   private decodeText(bytes: Uint8Array): string {
     let out = '';
     for (const b of bytes) {
-      if (b === 0xff) break; // end of string
+      if (b === 0xff) break;
       if (b === 0x00) out += ' ';
+      else if (b in TEXT_SYMBOLS) out += TEXT_SYMBOLS[b];
       else if (b >= 0xa1 && b <= 0xaa)
         out += String.fromCharCode(0x30 + (b - 0xa1)); // 0-9
-      else if (b === 0xab) out += '!';
-      else if (b === 0xac) out += '?';
-      else if (b === 0xad) out += '.';
-      else if (b === 0xae) out += '-';
       else if (b >= 0xbb && b <= 0xd4)
         out += String.fromCharCode(0x41 + (b - 0xbb)); // A-Z
       else if (b >= 0xd5 && b <= 0xee)
