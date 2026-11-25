@@ -15,6 +15,10 @@ export interface ParsedSave {
   bagBerries?: number[];
 }
 
+// RR save = FireRed layout, except:
+// - party mons are not encrypted / shuffled (checksum 0)
+// - PC mons are 58 bytes, moves packed on 10 bits
+// - PC split between sections 5-13 and a chunk of section 0
 @Injectable({
   providedIn: 'root',
 })
@@ -45,6 +49,7 @@ export class SaveFileParser {
   private readonly PC_EXTRA_OFFSET = 0xb0;
   private readonly PC_EXTRA_SLOTS = 63;
 
+  // bag has its own sector: key items +0x1F0, balls +0x31C, TMs +0x3E4, berries +0x5E4
   private readonly BAG_SECTOR = 0x1e000;
   private readonly TM_CASE_OFFSET = 0x3e4;
   private readonly TM_CASE_SLOTS = 128;

@@ -69,6 +69,7 @@ html {
   zoom: var(--ui-zoom);
 }
 
+// cdk previews / overlays live in body, undo the zoom there
 .cdk-drag-preview {
   zoom: calc(1 / var(--ui-zoom));
 }
