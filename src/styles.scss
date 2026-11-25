@@ -74,6 +74,11 @@ html {
   zoom: calc(1 / var(--ui-zoom));
 }
 
+// the preview box keeps the on-screen size, its content gets the zoom back
+.cdk-drag-preview > * {
+  zoom: var(--ui-zoom);
+}
+
 .cdk-overlay-container {
   zoom: calc(1 / var(--ui-zoom));
 }

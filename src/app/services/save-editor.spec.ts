@@ -10,6 +10,7 @@ import {
   findPersonality,
   followsCurve,
   isShinyPersonality,
+  resolveGrowthRate,
   SaveEditor,
   sameGenderByte,
 } from './save-editor';
@@ -399,5 +400,20 @@ describe('Radical Red experience curves', () => {
     expect(followsCurve(mon, 'medium-fast')).toBe(true);
     expect(followsCurve(mon, 'slow')).toBe(false);
     expect(followsCurve({ ...mon, location: 'box', level: undefined }, 'slow')).toBe(true);
+  });
+
+  it('works out a missing curve from a party Pokémon of the species', () => {
+    // Level 40 slow: 80 000 to 86 151 XP, no other curve covers 85 000 at level 40
+    const party = {
+      speciesId: 863,
+      location: 'party',
+      level: 40,
+      experience: 85000,
+    } as ParsedPokemon;
+    const boxed = { speciesId: 863, location: 'box', experience: 1000 } as ParsedPokemon;
+    expect(resolveGrowthRate(party, null, [])).toBe('slow');
+    expect(resolveGrowthRate(boxed, null, [party])).toBe('slow');
+    expect(resolveGrowthRate(boxed, null, [])).toBeNull();
+    expect(resolveGrowthRate(boxed, 'fast', [party])).toBe('fast');
   });
 });

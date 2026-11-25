@@ -99,14 +99,23 @@ export class SaveEditor {
     private readonly lookup: PokemonLookup,
   ) {}
 
+  /** Party as saved, used to work out curves missing from the data */
+  party: readonly ParsedPokemon[] = [];
+
+  growthRate(mon: ParsedPokemon): GrowthRate | null {
+    return resolveGrowthRate(
+      mon,
+      this.lookup.species.get(mon.speciesId)?.growthRate ?? null,
+      this.party,
+    );
+  }
+
   setLevel(mon: ParsedPokemon, level: number): void {
     const target = Math.max(1, Math.min(MAX_LEVEL, Math.round(level)));
     const species = this.lookup.species.get(mon.speciesId);
-    if (!species?.growthRate) {
-      throw new SaveEditError(`Unknown growth rate for species #${mon.speciesId}.`);
-    }
-    if (!followsCurve(mon, species.growthRate)) throw curveError(species.name);
-    const experience = experienceForLevel(species.growthRate, target);
+    const rate = this.growthRate(mon);
+    if (!rate) throw curveError(species?.name ?? `Species #${mon.speciesId}`);
+    const experience = experienceForLevel(rate, target);
     const bytes = this.locate(mon);
 
     if (mon.location === 'box') {
@@ -180,7 +189,8 @@ export class SaveEditor {
     if (!to) throw new SaveEditError(`Unknown species #${speciesId}.`);
     const bytes = this.locate(mon);
     if (speciesId === mon.speciesId) return mon;
-    if (from?.growthRate && !followsCurve(mon, from.growthRate)) throw curveError(from.name);
+    const fromRate = this.growthRate(mon);
+    if (from?.growthRate && !fromRate) throw curveError(from.name);
 
     const isParty = mon.location === 'party';
     bytes.setU16(isParty ? PARTY.species : BOX.species, speciesId);
@@ -189,10 +199,10 @@ export class SaveEditor {
     // Same level under the new experience curve
     const level = isParty
       ? bytes.getU8(PARTY.level)
-      : from?.growthRate
-        ? levelFromExperience(from.growthRate, mon.experience)
+      : fromRate
+        ? levelFromExperience(fromRate, mon.experience)
         : null;
-    if (level !== null && to.growthRate && from?.growthRate !== to.growthRate) {
+    if (level !== null && to.growthRate && fromRate !== to.growthRate) {
       edited.experience = experienceForLevel(to.growthRate, level);
       bytes.setU32(isParty ? PARTY.experience : BOX.experience, edited.experience);
     }
@@ -530,6 +540,32 @@ export function followsCurve(mon: ParsedPokemon, rate: GrowthRate): boolean {
     mon.experience >= experienceForLevel(rate, mon.level) &&
     mon.experience < experienceForLevel(rate, mon.level + 1)
   );
+}
+
+const GROWTH_RATES: GrowthRate[] = [
+  'fast',
+  'medium-fast',
+  'medium-slow',
+  'slow',
+  'erratic',
+  'fluctuating',
+];
+
+// The data curve when the Pokémon follows it, otherwise the only curve that fits the
+// level and experience of a party Pokémon of that species (party mons store both).
+export function resolveGrowthRate(
+  mon: ParsedPokemon,
+  known: GrowthRate | null,
+  party: readonly ParsedPokemon[],
+): GrowthRate | null {
+  if (known && followsCurve(mon, known)) return known;
+  const sources = [mon, ...party.filter((p) => p.speciesId === mon.speciesId)];
+  for (const source of sources) {
+    if (source.location !== 'party' || !source.level) continue;
+    const fits = GROWTH_RATES.filter((r) => followsCurve(source, r) && followsCurve(mon, r));
+    if (fits.length === 1) return fits[0];
+  }
+  return null;
 }
 
 function curveError(species: string): SaveEditError {

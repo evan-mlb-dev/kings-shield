@@ -30,7 +30,7 @@ import { SaveEditorSession } from '../../states/save-editor-session';
 import { SidePanelState } from '../../states/side-panel';
 
 const SMOGON_DEX = 'https://www.smogon.com/dex/';
-import { type AbilityChoice, followsCurve } from '../../services/save-editor';
+import { type AbilityChoice } from '../../services/save-editor';
 
 /** A Pokémon of the working copy, as listed */
 interface Entry {
@@ -291,11 +291,8 @@ export class SaveEditorPage {
     if (!entry) return null;
     const id = this.evolveTo() ?? entry.parsed.speciesId;
     const species = this.db.species.get(id);
-    return species?.smogonSlug
-      ? {
-          name: species.name,
-          url: `https://www.smogon.com/dex/sv/pokemon/${species.smogonSlug}/national-dex/`,
-        }
+    return species?.smogonPath
+      ? { name: species.name, url: `${SMOGON_DEX}${species.smogonPath}` }
       : null;
   });
 
@@ -402,8 +399,7 @@ export class SaveEditorPage {
   protected readonly levelLocked = computed(() => {
     const parsed = this.selected()?.parsed;
     if (!parsed) return false;
-    const rate = this.db.species.get(parsed.speciesId)?.growthRate;
-    return !rate || !followsCurve(parsed, rate);
+    return !this.session.growthRate(parsed);
   });
 
   /** The selected Pokémon is already above the level cap */
@@ -411,11 +407,42 @@ export class SaveEditorPage {
 
   protected readonly tab = signal<'details' | 'moves'>('details');
 
-  /** Move IDs of the 4 slots (0 = empty) */
-  protected readonly moveSlots = linkedSignal(() => {
-    const moves = this.selected()?.mon.moves ?? [];
-    return [0, 1, 2, 3].map((i) => moves[i]?.id ?? 0);
+  // The save stores moves packed, so a forgotten move would shift the others up:
+  // the slots as laid out on screen are kept per Pokémon instead
+  private readonly slotLayouts = this.session.moveLayouts;
+
+  private readonly savedSlots = computed(() => {
+    const entry = this.selected();
+    const ids = entry?.mon.moves.map((m) => m.id) ?? [];
+    const layout = entry ? this.slotLayouts().get(entry.key) : undefined;
+    if (layout && sameMoves(layout, ids)) return layout;
+    return [0, 1, 2, 3].map((i) => ids[i] ?? 0);
   });
+
+  /** Move IDs of the 4 slots (0 = empty) */
+  protected readonly moveSlots = linkedSignal(() => this.savedSlots());
+
+  private readonly rememberLayout = effect(() => {
+    const entry = this.selected();
+    const slots = this.moveSlots();
+    if (
+      !entry ||
+      !sameMoves(
+        slots,
+        entry.mon.moves.map((m) => m.id),
+      )
+    )
+      return;
+    untracked(() => this.keepLayout([entry.key], slots));
+  });
+
+  private keepLayout(keys: string[], slots: number[]): void {
+    const layouts = this.slotLayouts();
+    if (keys.every((k) => layouts.get(k)?.every((id, i) => id === slots[i]))) return;
+    const next = new Map(layouts);
+    for (const key of keys) next.set(key, [...slots]);
+    this.slotLayouts.set(next);
+  }
 
   /** Moves in the slots (a Pokémon keeps at least one) */
   protected readonly filledSlots = computed(() => this.moveSlots().filter((id) => id > 0).length);
@@ -473,8 +500,10 @@ export class SaveEditorPage {
     if (!entry) return null;
     const mon = entry.mon;
     const moves = this.moveSlots();
-    const currentMoves = [0, 1, 2, 3].map((i) => mon.moves[i]?.id ?? 0);
-    const movesChanged = moves.some((id, i) => id !== currentMoves[i]);
+    const movesChanged = !sameMoves(
+      moves,
+      mon.moves.map((m) => m.id),
+    );
     return {
       species: this.evolveTo() ?? undefined,
       level: !this.levelLocked() && this.level() !== mon.level ? this.level() : undefined,
@@ -510,10 +539,15 @@ export class SaveEditorPage {
     const entry = this.selected();
     const changes = this.formChanges();
     if (!entry || !changes || !this.canApply()) return;
+    const slots = this.moveSlots();
     try {
+      this.keepLayout([entry.key], slots);
       this.session.apply(entry.parsed, changes);
       const after = this.session.changes().at(-1)?.key;
-      if (after) this.selectedKey.set(after);
+      if (after) {
+        this.keepLayout([after], slots);
+        this.selectedKey.set(after);
+      }
     } catch (error) {
       this.message.set({ kind: 'error', text: (error as Error).message });
     }
@@ -538,7 +572,7 @@ export class SaveEditorPage {
     this.shiny.set(entry.mon.isShiny);
     this.ability.set(this.currentAbility());
     this.heldItem.set(entry.parsed.heldItem);
-    this.moveSlots.set([0, 1, 2, 3].map((i) => entry.mon.moves[i]?.id ?? 0));
+    this.moveSlots.set(this.savedSlots());
   }
 
   protected download(): void {
@@ -557,4 +591,10 @@ export class SaveEditorPage {
     this.session.restart();
     this.message.set(null);
   }
+}
+
+/** Same moves in the same order, empty slots ignored */
+function sameMoves(slots: number[], moves: number[]): boolean {
+  const filled = slots.filter((id) => id > 0);
+  return filled.length === moves.length && filled.every((id, i) => id === moves[i]);
 }

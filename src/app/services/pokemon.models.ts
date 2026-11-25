@@ -93,7 +93,8 @@ export interface SpeciesEntry {
   baseStats: Readonly<Stats>;
   growthRate: GrowthRate | null;
   tier: string | null;
-  smogonSlug: string | null;
+  /** Smogon dex page after /dex/, in the highest tier with an analysis */
+  smogonPath: string | null;
 }
 
 export interface PokemonLookup {
@@ -108,9 +109,7 @@ export class Pokemon {
   readonly baseStatTotal: number;
 
   get smogonUrl(): string | null {
-    return this.smogonSlug
-      ? `https://www.smogon.com/dex/sv/pokemon/${this.smogonSlug}/national-dex/`
-      : null;
+    return this.smogonPath ? `https://www.smogon.com/dex/${this.smogonPath}` : null;
   }
 
   constructor(
@@ -138,7 +137,7 @@ export class Pokemon {
     /** Species base stats; null when the species is unknown */
     public readonly baseStats: Readonly<Stats> | null = null,
     public readonly tier: string | null = null,
-    public readonly smogonSlug: string | null = null,
+    public readonly smogonPath: string | null = null,
   ) {
     Object.freeze(this.types);
     Object.freeze(this.moves);
@@ -181,7 +180,7 @@ export class Pokemon {
       parsed.slot,
       species?.baseStats ?? null,
       species?.tier ?? null,
-      species?.smogonSlug ?? null,
+      species?.smogonPath ?? null,
     );
   }
 

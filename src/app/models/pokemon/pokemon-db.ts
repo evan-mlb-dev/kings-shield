@@ -57,7 +57,7 @@ export class PokemonDb implements PokemonLookup {
 
     const growthRates = growthRatesJson as Record<string, string>;
     const growthOverrides = growthRateOverridesJson as Record<string, string | null>;
-    const smogon = smogonJson as Record<string, { tier: string; slug: string }>;
+    const smogon = smogonJson as Record<string, { tier: string; path: string }>;
     const species = new Map<number, SpeciesEntry>();
     for (const [id, s] of Object.entries(
       speciesJson as Record<
@@ -75,7 +75,7 @@ export class PokemonDb implements PokemonLookup {
             ? (growthOverrides[s.name] as GrowthRate | null)
             : ((growthRates[s.dex] as GrowthRate | undefined) ?? null),
         tier: smogon[id]?.tier ?? null,
-        smogonSlug: smogon[id]?.slug ?? null,
+        smogonPath: smogon[id]?.path ?? null,
       });
     }
     this.species = species;

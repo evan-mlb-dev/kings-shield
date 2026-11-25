@@ -1,10 +1,10 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
 import { Analytics } from '../services/analytics';
-import { AbilityChoice, followsCurve, SaveEditError, SaveEditor } from '../services/save-editor';
+import { AbilityChoice, SaveEditError, SaveEditor } from '../services/save-editor';
 import { ParsedPokemon, ParsedSave, SaveFileParser } from '../services/save-file-parser';
 import { SaveFileWriter } from '../services/save-file-writer';
-import { experienceForLevel, levelFromExperience } from '../shared/experience';
+import { experienceForLevel, type GrowthRate, levelFromExperience } from '../shared/experience';
 import { ownedTmNumbers } from '../shared/learnset';
 import { GameStateService, pokemonKey } from './game-state';
 import { SaveBytesState } from './save-bytes';
@@ -86,6 +86,9 @@ export class SaveEditorSession {
         planned.some((p, i) => pokemonKey(p) !== pokemonKey(party[i])))
     );
   });
+
+  /** Move slots as laid out in the editor, by Pokémon key (the save keeps them packed) */
+  readonly moveLayouts = signal(new Map<string, number[]>());
 
   readonly editable = computed<{ team: ParsedPokemon[]; pc: ParsedPokemon[] }>(() => {
     const save = this.save();
@@ -207,8 +210,8 @@ export class SaveEditorSession {
   }
 
   levelCapAction(mon: ParsedPokemon, cap: number): 'raise' | 'lower' | 'unknown' | null {
-    const growth = this.db.species.get(mon.speciesId)?.growthRate;
-    if (!growth || !followsCurve(mon, growth)) return 'unknown';
+    const growth = this.growthRate(mon);
+    if (!growth) return 'unknown';
     const level = mon.level ?? levelFromExperience(growth, mon.experience);
     if (level < cap) return 'raise';
     return mon.experience > experienceForLevel(growth, cap) ? 'lower' : null;
@@ -295,7 +298,14 @@ export class SaveEditorSession {
 
   private reparse(): void {
     const editor = this.editor;
-    this.save.set(editor ? this.parser.parseSaveFile(editor.writer.bytes.slice().buffer) : null);
+    const save = editor ? this.parser.parseSaveFile(editor.writer.bytes.slice().buffer) : null;
+    if (editor) editor.party = save?.team ?? [];
+    this.save.set(save);
+  }
+
+  growthRate(mon: ParsedPokemon): GrowthRate | null {
+    this.save();
+    return this.editor?.growthRate(mon) ?? null;
   }
 
   private rename(oldKey: string, newKey: string): void {
