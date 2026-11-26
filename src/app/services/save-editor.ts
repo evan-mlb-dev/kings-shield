@@ -7,6 +7,7 @@ import {
   type GrowthRate,
   levelFromExperience,
   MAX_LEVEL,
+  reachesLevel,
 } from '../shared/experience';
 
 const PARTY_LIST_OFFSET = 0x38;
@@ -535,10 +536,10 @@ export function findPersonality(
 
 export function followsCurve(mon: ParsedPokemon, rate: GrowthRate): boolean {
   if (mon.location !== 'party' || !mon.level) return true;
-  if (mon.level >= MAX_LEVEL) return mon.experience >= experienceForLevel(rate, MAX_LEVEL);
+  if (mon.level >= MAX_LEVEL) return reachesLevel(rate, mon.experience, MAX_LEVEL);
   return (
-    mon.experience >= experienceForLevel(rate, mon.level) &&
-    mon.experience < experienceForLevel(rate, mon.level + 1)
+    reachesLevel(rate, mon.experience, mon.level) &&
+    !reachesLevel(rate, mon.experience, mon.level + 1)
   );
 }
 

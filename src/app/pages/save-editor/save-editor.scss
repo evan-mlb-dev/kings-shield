@@ -527,6 +527,12 @@ app-move-learner {
   opacity: 0.8;
 }
 
+.kept-moves {
+  margin-top: 4px;
+  font-size: 0.68rem;
+  color: var(--secondary-color);
+}
+
 .link-button {
   align-self: flex-end;
   padding: 2px 0;

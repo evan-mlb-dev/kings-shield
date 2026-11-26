@@ -28,6 +28,11 @@
           No change yet: select a Pokémon to edit it.
         }
       </div>
+      <app-mass-action-menu
+        [actions]="massActions()"
+        [disabled]="!session.save()"
+        (run)="runMassAction($event)"
+      />
       <div class="level-cap">
         <label class="cap-label" for="level-cap">Level cap</label>
         <app-number-stepper
@@ -343,7 +348,6 @@
                           class="clear-move"
                           title="Forget this move"
                           [attr.aria-label]="'Forget ' + move.name"
-                          [disabled]="filledSlots() <= 1"
                           (click)="clearSlot(i)"
                         >
                           ×
@@ -352,6 +356,12 @@
                     } @else {
                       <app-move-row placeholder="Empty slot" />
                     }
+                  }
+                  @if (keptMoves().length) {
+                    <p class="kept-moves">
+                      A Pokémon needs a move: the save keeps {{ keptMoves().join(', ') }} until you
+                      pick one.
+                    </p>
                   }
                   <button type="button" class="link-button" (click)="tab.set('moves')">
                     Change moves →

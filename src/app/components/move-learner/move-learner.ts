@@ -69,7 +69,6 @@ export class MoveLearner {
   }
 
   protected clearSlot(slot: number): void {
-    if (this.slots().filter((id) => id > 0).length <= 1) return;
     this.slots.update((slots) => slots.map((id, i) => (i === slot ? 0 : id)));
   }
 

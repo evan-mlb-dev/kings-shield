@@ -17,6 +17,10 @@ import { MonCoverage } from '../../components/mon-coverage/mon-coverage';
 import { MoveFilters } from '../../components/move-filters/move-filters';
 import { MoveLearner } from '../../components/move-learner/move-learner';
 import { MoveRow } from '../../components/move-row/move-row';
+import {
+  type MassAction,
+  MassActionMenu,
+} from '../../components/mass-action-menu/mass-action-menu';
 import { NaturePicker } from '../../components/nature-picker/nature-picker';
 import { ShinyToggle } from '../../components/shiny-toggle/shiny-toggle';
 import { NumberStepper } from '../../components/number-stepper/number-stepper';
@@ -30,6 +34,9 @@ import { SaveEditorSession } from '../../states/save-editor-session';
 import { SidePanelState } from '../../states/side-panel';
 
 const SMOGON_DEX = 'https://www.smogon.com/dex/';
+
+/** Sitrus Berry, Oran Berry */
+const MASS_ITEMS = [142, 139];
 import { type AbilityChoice } from '../../services/save-editor';
 
 /** A Pokémon of the working copy, as listed */
@@ -46,6 +53,7 @@ interface Entry {
 @Component({
   selector: 'app-save-editor-page',
   imports: [
+    MassActionMenu,
     PokemonSprite,
     TypeIcon,
     NumberStepper,
@@ -100,6 +108,38 @@ export class SaveEditorPage {
       this.message.set({ kind: 'error', text: (error as Error).message });
     }
   }
+
+  protected readonly massActions = computed<MassAction[]>(() => {
+    const bag = this.session.holdableItems();
+    const owned = new Set([...(bag?.items ?? []), ...(bag?.berries ?? [])]);
+    return MASS_ITEMS.map((id) => {
+      const name = this.db.items.get(id)?.name ?? `#${id}`;
+      return {
+        id: `item:${id}`,
+        label: `Give ${withArticle(name)}`,
+        itemId: id,
+        blocked: owned.has(id) ? undefined : 'Not in the bag',
+      };
+    });
+  });
+
+  protected runMassAction(action: string): void {
+    const [kind, id] = action.split(':');
+    if (kind !== 'item') return;
+    try {
+      const name = withArticle(this.db.items.get(Number(id))?.name ?? 'item');
+      const changed = this.session.giveItemToAll(Number(id));
+      this.message.set({
+        kind: 'ok',
+        text: changed
+          ? `${changed} Pokémon now hold ${name}.`
+          : `Every Pokémon already holds ${name}.`,
+      });
+    } catch (error) {
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    }
+  }
+
   protected readonly selectedKey = signal<string | null>(null);
   protected readonly message = signal<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -415,7 +455,7 @@ export class SaveEditorPage {
     const entry = this.selected();
     const ids = entry?.mon.moves.map((m) => m.id) ?? [];
     const layout = entry ? this.slotLayouts().get(entry.key) : undefined;
-    if (layout && sameMoves(layout, ids)) return layout;
+    if (layout && (sameMoves(layout, ids) || noMoves(layout))) return layout;
     return [0, 1, 2, 3].map((i) => ids[i] ?? 0);
   });
 
@@ -425,14 +465,8 @@ export class SaveEditorPage {
   private readonly rememberLayout = effect(() => {
     const entry = this.selected();
     const slots = this.moveSlots();
-    if (
-      !entry ||
-      !sameMoves(
-        slots,
-        entry.mon.moves.map((m) => m.id),
-      )
-    )
-      return;
+    const ids = entry?.mon.moves.map((m) => m.id) ?? [];
+    if (!entry || !(sameMoves(slots, ids) || noMoves(slots))) return;
     untracked(() => this.keepLayout([entry.key], slots));
   });
 
@@ -444,11 +478,13 @@ export class SaveEditorPage {
     this.slotLayouts.set(next);
   }
 
-  /** Moves in the slots (a Pokémon keeps at least one) */
-  protected readonly filledSlots = computed(() => this.moveSlots().filter((id) => id > 0).length);
+  // A Pokémon needs a move in the save: with every slot cleared, the save keeps
+  // its moves until a new one is picked
+  protected readonly keptMoves = computed(() =>
+    noMoves(this.moveSlots()) ? (this.selected()?.mon.moves.map((m) => m.name) ?? []) : [],
+  );
 
   protected clearSlot(slot: number): void {
-    if (this.filledSlots() <= 1) return;
     this.moveSlots.update((slots) => slots.map((id, i) => (i === slot ? 0 : id)));
   }
 
@@ -500,10 +536,12 @@ export class SaveEditorPage {
     if (!entry) return null;
     const mon = entry.mon;
     const moves = this.moveSlots();
-    const movesChanged = !sameMoves(
-      moves,
-      mon.moves.map((m) => m.id),
-    );
+    const movesChanged =
+      !noMoves(moves) &&
+      !sameMoves(
+        moves,
+        mon.moves.map((m) => m.id),
+      );
     return {
       species: this.evolveTo() ?? undefined,
       level: !this.levelLocked() && this.level() !== mon.level ? this.level() : undefined,
@@ -522,7 +560,6 @@ export class SaveEditorPage {
     if (!Number.isInteger(level) || level < 1 || level > 100) return false;
     if (changes.level !== undefined && level > this.levelCap()) return false;
     if (this.evolutionProblem()) return false;
-    if (changes.moves && changes.moves.length === 0) return false;
     return Object.values(changes).some((v) => v !== undefined);
   });
 
@@ -572,6 +609,11 @@ export class SaveEditorPage {
     this.shiny.set(entry.mon.isShiny);
     this.ability.set(this.currentAbility());
     this.heldItem.set(entry.parsed.heldItem);
+    this.slotLayouts.update((layouts) => {
+      const next = new Map(layouts);
+      next.delete(entry.key);
+      return next;
+    });
     this.moveSlots.set(this.savedSlots());
   }
 
@@ -597,4 +639,12 @@ export class SaveEditorPage {
 function sameMoves(slots: number[], moves: number[]): boolean {
   const filled = slots.filter((id) => id > 0);
   return filled.length === moves.length && filled.every((id, i) => id === moves[i]);
+}
+
+function noMoves(slots: number[]): boolean {
+  return slots.every((id) => id === 0);
+}
+
+function withArticle(name: string): string {
+  return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
 }

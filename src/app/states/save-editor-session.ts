@@ -245,6 +245,33 @@ export class SaveEditorSession {
     return count;
   }
 
+  /** Every Pokémon (team and PC) holds the item; returns how many changed */
+  giveItemToAll(itemId: number): number {
+    const editor = this.editor;
+    const { team, pc } = this.editable();
+    if (!editor || !this.save()) throw new SaveEditError('No save to edit.');
+    const name = this.db.items.get(itemId)?.name ?? `#${itemId}`;
+    const backup = editor.writer.bytes.slice();
+    const changesBackup = this._changes();
+    let changed = 0;
+    try {
+      for (const mon of [...team, ...pc]) {
+        if (mon.heldItem === itemId) continue;
+        editor.setHeldItem(mon, itemId);
+        const key = pokemonKey(mon);
+        this.recordChange(key, key, mon, { item: name });
+        changed++;
+      }
+    } catch (error) {
+      editor.writer.bytes.set(backup);
+      this._changes.set(changesBackup);
+      this.reparse();
+      throw error;
+    }
+    this.reparse();
+    return changed;
+  }
+
   revert(mon: ParsedPokemon): string {
     const editor = this.editor;
     const original = this.original;

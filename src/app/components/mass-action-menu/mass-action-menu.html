@@ -1,0 +1,43 @@
+<button
+  type="button"
+  class="trigger"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="open()"
+  [disabled]="disabled()"
+  title="Actions on every Pokémon of the team and the PC"
+  (click)="toggle()"
+  (keydown)="onKeydown($event)"
+>
+  Mass action
+  <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" />
+  </svg>
+</button>
+
+@if (open()) {
+  <ul class="popup" role="menu" aria-label="Mass action">
+    <li class="group" role="presentation">Every Pokémon</li>
+    @for (action of actions(); track action.id) {
+      <li
+        class="option"
+        role="menuitem"
+        [attr.aria-disabled]="!!action.blocked"
+        [class.blocked]="!!action.blocked"
+        [class.active]="action.id === activeId()"
+        [title]="action.blocked ?? ''"
+        (mouseenter)="!action.blocked && activeId.set(action.id)"
+        (mousedown)="$event.preventDefault(); pick(action)"
+      >
+        <span class="icon">
+          @if (action.itemId) {
+            <app-item-icon [id]="action.itemId" [name]="action.label" />
+          }
+        </span>
+        <span class="name">{{ action.label }}</span>
+        @if (action.blocked) {
+          <span class="note">{{ action.blocked }}</span>
+        }
+      </li>
+    }
+  </ul>
+}

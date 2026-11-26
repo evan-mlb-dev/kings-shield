@@ -402,6 +402,13 @@ describe('Radical Red experience curves', () => {
     expect(followsCurve({ ...mon, location: 'box', level: undefined }, 'slow')).toBe(true);
   });
 
+  it('accepts the game tables sitting 1 XP below the formulas', () => {
+    // Real save: level 5 Bulbasaur (medium-slow, formula 135) with 134 XP
+    const bulbasaur = { location: 'party', level: 5, experience: 134 } as ParsedPokemon;
+    expect(followsCurve(bulbasaur, 'medium-slow')).toBe(true);
+    expect(followsCurve({ ...bulbasaur, experience: 133 }, 'medium-slow')).toBe(false);
+  });
+
   it('works out a missing curve from a party Pokémon of the species', () => {
     // Level 40 slow: 80 000 to 86 151 XP, no other curve covers 85 000 at level 40
     const party = {

@@ -29,8 +29,16 @@ export function experienceForLevel(rate: GrowthRate, level: number): number {
   }
 }
 
+// Radical Red's tables sit up to 1 XP below the formulas (rounding in the game's own
+// computation: a level 5 Bulbasaur has 134 XP, the formula says 135)
+const TABLE_SLACK = 1;
+
+export function reachesLevel(rate: GrowthRate, experience: number, level: number): boolean {
+  return level <= 1 || experience >= experienceForLevel(rate, level) - TABLE_SLACK;
+}
+
 export function levelFromExperience(rate: GrowthRate, experience: number): number {
   let level = 1;
-  while (level < MAX_LEVEL && experience >= experienceForLevel(rate, level + 1)) level++;
+  while (level < MAX_LEVEL && reachesLevel(rate, experience, level + 1)) level++;
   return level;
 }
