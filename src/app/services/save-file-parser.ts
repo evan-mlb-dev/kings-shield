@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import type { ParsedPokemon, Stats } from '../models/pokemon/pokemon';
 import { TEXT_SYMBOLS } from './gen3-text';
+import type { AbilityRandomizer } from '../shared/ability-randomizer';
 
 export type { ParsedPokemon, Stats };
 
@@ -14,6 +15,15 @@ export interface ParsedSave {
   tmCase?: number[];
   bagItems?: number[];
   bagBerries?: number[];
+  /** In-game randomizer options of the run */
+  randomizer?: RandomizerOptions;
+}
+
+export interface RandomizerOptions {
+  species: boolean;
+  learnsets: boolean;
+  abilities: boolean;
+  restricted: boolean;
 }
 
 // RR save = FireRed layout, except:
@@ -59,6 +69,12 @@ export class SaveFileParser {
   private readonly SECTION_DATA_END = 0xff0;
   private readonly BERRIES_OFFSET = 0x5e4;
   private readonly BERRIES_SLOTS = 64;
+
+  // randomizer options: section 0 byte (species 0x1, learnsets 0x2, abilities 0x4),
+  // Restricted mode: section 4 byte, bit 0x40
+  private readonly RANDOMIZER_OFFSET = 0xf2c;
+  private readonly RESTRICTED_SECTION = 4;
+  private readonly RESTRICTED_OFFSET = 0xdc3;
 
   private readonly BOX_NAMES_OFFSET_IN_PC = 0x7f61;
   private readonly BOX_NAME_SIZE = 9;
@@ -130,6 +146,22 @@ export class SaveFileParser {
       boxNames.push(this.decodeText(pcBuffer.subarray(o, o + this.BOX_NAME_SIZE)));
     }
 
+    const flags = bytes[trainerOff + this.RANDOMIZER_OFFSET];
+    const randomizer: RandomizerOptions = {
+      species: (flags & 0x1) !== 0,
+      learnsets: (flags & 0x2) !== 0,
+      abilities: (flags & 0x4) !== 0,
+      restricted:
+        (bytes[sections.get(this.RESTRICTED_SECTION)! + this.RESTRICTED_OFFSET] & 0x40) !== 0,
+    };
+    if (randomizer.abilities) {
+      const randomAbilities: AbilityRandomizer = {
+        otId: trainerOtId,
+        restricted: randomizer.restricted,
+      };
+      for (const mon of [...team, ...pc]) mon.randomAbilities = randomAbilities;
+    }
+
     console.log(`Party: ${team.length} Pokémon, PC: ${pc.length} Pokémon.`);
     return {
       team,
@@ -141,6 +173,7 @@ export class SaveFileParser {
       tmCase: this.readTmCase(view),
       bagItems: this.readItemsPocket(view, sections.get(this.ITEMS_POCKET_SECTION)),
       bagBerries: this.readPocket(view, this.BAG_SECTOR + this.BERRIES_OFFSET, this.BERRIES_SLOTS),
+      randomizer,
     };
   }
 

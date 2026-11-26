@@ -1,3 +1,4 @@
+import type { AbilityRandomizer } from '../../shared/ability-randomizer';
 export interface Stats {
   hp: number;
   atk: number;
@@ -33,6 +34,8 @@ export interface ParsedPokemon {
   abilitySlot: number;
   /** Has the species' hidden ability (when it has one) */
   hiddenAbility?: boolean;
+  /** Set when the run randomizes abilities: the species slots are remapped */
+  randomAbilities?: AbilityRandomizer;
   isShiny: boolean;
   metLocation: number;
   /** Party only */

@@ -1,3 +1,4 @@
+import { randomizedAbilityIds } from '../shared/ability-randomizer';
 import { type GrowthRate, levelFromExperience } from '../shared/experience';
 import type { ParsedPokemon, Stats } from './save-file-parser';
 
@@ -160,7 +161,7 @@ export class Pokemon {
       species?.types ?? [],
       parsed.moves.map((id) => lookup.moves.get(id)).filter((m): m is Move => !!m),
       Pokemon.resolveAbility(
-        species?.abilityIds ?? [],
+        randomizedAbilityIds(species?.abilityIds ?? [], parsed.speciesId, parsed.randomAbilities),
         parsed.abilitySlot,
         !!parsed.hiddenAbility,
         lookup.abilities,

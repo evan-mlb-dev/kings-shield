@@ -29,6 +29,7 @@ import { LearnableMove, learnableMoves, progressStage } from '../../shared/learn
 import { PokemonSprite } from '../../shared/icons/pokemon-sprite';
 import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
+import { randomizedAbilityIds } from '../../shared/ability-randomizer';
 import { LevelCapState } from '../../states/level-cap';
 import { SaveEditorSession } from '../../states/save-editor-session';
 import { SidePanelState } from '../../states/side-panel';
@@ -222,7 +223,12 @@ export class SaveEditorPage {
   protected readonly abilityOptions = computed(() => {
     const entry = this.selected();
     if (!entry) return [];
-    const ids = this.db.species.get(this.evolveTo() ?? entry.parsed.speciesId)?.abilityIds ?? [];
+    const speciesId = this.evolveTo() ?? entry.parsed.speciesId;
+    const ids = randomizedAbilityIds(
+      this.db.species.get(speciesId)?.abilityIds ?? [],
+      speciesId,
+      entry.parsed.randomAbilities,
+    );
     const current = this.currentAbility();
     const owned = this.session.abilityItems();
     return ([1, 2, 0] as const)
