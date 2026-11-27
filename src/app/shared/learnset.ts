@@ -1,5 +1,6 @@
 import learnsetsJson from '../data/learnsets.json';
 import type { Move, PokemonLookup } from '../services/pokemon.models';
+import { type MoveRandomizer, randomizeMove } from './move-randomizer';
 
 interface LearnsetData {
   /** [tmNumber, moveId] */
@@ -58,12 +59,14 @@ export function learnableMoves(
   ownedTms: ReadonlySet<number> | null,
   lookup: PokemonLookup,
   stage: number | null = null,
+  randomMoves: MoveRandomizer | null = null,
 ): LearnableMove[] {
   const data = DATA.species[speciesId];
   if (!data) return [];
   const byMove = new Map<number, LearnableMove>();
 
-  for (const [moveId, learnLevel] of data.levelup) {
+  for (const [originalId, learnLevel] of data.levelup) {
+    const moveId = randomizeMove(originalId, speciesId, randomMoves);
     const move = lookup.moves.get(moveId);
     if (!move) continue;
     const previous = byMove.get(moveId);

@@ -36,6 +36,8 @@ export interface ParsedPokemon {
   hiddenAbility?: boolean;
   /** Set when the run randomizes abilities: the species slots are remapped */
   randomAbilities?: AbilityRandomizer;
+  /** Set when the run randomizes learnsets: level-up moves are remapped */
+  randomMoves?: AbilityRandomizer;
   isShiny: boolean;
   metLocation: number;
   /** Party only */

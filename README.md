@@ -55,7 +55,7 @@ Every push to `main` builds the app and publishes it on GitHub Pages (`.github/w
 ## Credits
 
 - Radical Red data and sprites: [Radical Red Pokédex](https://github.com/JwowSquared/Radical-Red-Pokedex)
-- Random abilities (in-game randomizer options, ability formula and tables): [sangvo1991's Radical Red Pokédex](https://github.com/sangvo1991/Radical-Red-Pokedex)
+- Random abilities and learnsets (in-game randomizer options, formulas and ROM tables): [sangvo1991's Radical Red Pokédex](https://github.com/sangvo1991/Radical-Red-Pokedex)
 - Smogon tiers and some sprites: [Pokémon Showdown](https://play.pokemonshowdown.com/)
 - Smogon analyses (dex links to the highest tier): [data.pkmn.cc](https://data.pkmn.cc/)
 - Item sprites and growth rates: [PokeAPI](https://pokeapi.co/)

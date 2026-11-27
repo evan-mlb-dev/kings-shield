@@ -375,6 +375,7 @@ export class SaveEditorPage {
         this.session.ownedTms(),
         this.db,
         this.stage(),
+        entry.parsed.randomMoves,
       )) {
         if (l.available) learnable.add(l.move.id);
       }
@@ -523,7 +524,14 @@ export class SaveEditorPage {
     const entry = this.selected();
     if (!entry) return [];
     const species = this.evolveTo() ?? entry.parsed.speciesId;
-    return learnableMoves(species, this.level(), this.session.ownedTms(), this.db, this.stage());
+    return learnableMoves(
+      species,
+      this.level(),
+      this.session.ownedTms(),
+      this.db,
+      this.stage(),
+      entry.parsed.randomMoves,
+    );
   });
 
   protected readonly allowedMoves = computed(

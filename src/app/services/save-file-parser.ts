@@ -154,12 +154,13 @@ export class SaveFileParser {
       restricted:
         (bytes[sections.get(this.RESTRICTED_SECTION)! + this.RESTRICTED_OFFSET] & 0x40) !== 0,
     };
-    if (randomizer.abilities) {
-      const randomAbilities: AbilityRandomizer = {
-        otId: trainerOtId,
-        restricted: randomizer.restricted,
-      };
-      for (const mon of [...team, ...pc]) mon.randomAbilities = randomAbilities;
+    const runRandomizer: AbilityRandomizer = {
+      otId: trainerOtId,
+      restricted: randomizer.restricted,
+    };
+    for (const mon of [...team, ...pc]) {
+      if (randomizer.abilities) mon.randomAbilities = runRandomizer;
+      if (randomizer.learnsets) mon.randomMoves = runRandomizer;
     }
 
     console.log(`Party: ${team.length} Pokémon, PC: ${pc.length} Pokémon.`);
