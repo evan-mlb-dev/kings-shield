@@ -93,6 +93,18 @@
             </button>
           </div>
         }
+        @case ('reconnecting') {
+          <div class="status-row" role="status">
+            <span class="status-dot waiting" aria-hidden="true"></span>
+            <p>
+              Reconnecting to room <b>{{ soulLink.roomCode() }}</b>…
+              <span class="hint">The other player may be reloading the page.</span>
+            </p>
+            <button type="button" class="ghost-button" (click)="soulLink.disconnect()">
+              Leave the room
+            </button>
+          </div>
+        }
         @default {
           <div class="status-row">
             <span class="status-dot waiting" aria-hidden="true"></span>

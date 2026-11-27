@@ -16,7 +16,51 @@ const PROTOCOL = 5;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 6;
 
-export type ConnectionStatus = 'idle' | 'opening' | 'waiting' | 'connecting' | 'connected';
+export type ConnectionStatus =
+  'idle' | 'opening' | 'waiting' | 'connecting' | 'connected' | 'reconnecting';
+
+// The room survives a reload of the tab (sessionStorage), not its closing
+const SESSION_KEY = 'king_shield_soul_session';
+const SESSION_TTL = 12 * 60 * 60 * 1000;
+/** Retry delays while reconnecting, the last one repeats */
+const RETRY_DELAYS = [1000, 2000, 3000, 5000, 8000, 10000];
+/** Reconnecting stops after this long without success */
+const GIVE_UP_AFTER = 10 * 60 * 1000;
+/** Peer errors worth retrying once the room was set up */
+const RECOVERABLE = new Set([
+  'unavailable-id',
+  'peer-unavailable',
+  'network',
+  'server-error',
+  'socket-error',
+  'socket-closed',
+  'disconnected',
+  'webrtc',
+]);
+
+interface RoomSession {
+  code: string;
+  host: boolean;
+  at: number;
+}
+
+function readSession(): RoomSession | null {
+  try {
+    const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null') as RoomSession | null;
+    return session && Date.now() - session.at < SESSION_TTL ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(session: RoomSession | null): void {
+  try {
+    if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    else sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Storage unavailable: no resume after a reload
+  }
+}
 
 /** What a player shares of their save */
 export interface SharedSave {
@@ -191,6 +235,11 @@ export class SoulLinkService {
 
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
+  /** The room was set up once: losing it means reconnecting, not failing */
+  private established = false;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryCount = 0;
+  private reconnectingSince: number | null = null;
 
   private readonly myMons = computed<ParsedPokemon[]>(() => {
     const data = this.gameState.pkmnData();
@@ -550,6 +599,22 @@ export class SoulLinkService {
   }
 
   constructor() {
+    const session = readSession();
+    if (session && this.enabled()) void this.resume(session);
+    if (typeof document !== 'undefined') {
+      // Back from sleep or offline: retry now instead of waiting for the next attempt
+      const retryNow = () => {
+        if (document.visibilityState === 'visible' && this.retryTimer) {
+          clearTimeout(this.retryTimer);
+          this.retryTimer = null;
+          const current = readSession();
+          if (current) void this.resume(current);
+        }
+      };
+      document.addEventListener('visibilitychange', retryNow);
+      window.addEventListener('online', retryNow);
+    }
+
     effect(() => {
       if (!this.draft() || this.pickablePairs().length > 0) return;
       const team = this.gameState.team();
@@ -624,12 +689,19 @@ export class SoulLinkService {
   /** Opens a room and waits for the other player */
   async host(): Promise<void> {
     if (this.status() !== 'idle') return;
-    const code = randomCode();
-    const peer = await this.openPeer(PEER_PREFIX + code);
+    await this.openRoom(randomCode(), false);
+  }
+
+  private async openRoom(code: string, resuming: boolean): Promise<void> {
+    const peer = await this.openPeer(PEER_PREFIX + code, resuming);
     if (!peer) return;
     this.roomCode.set(code);
     this.isHost.set(true);
     this.status.set('waiting');
+    this.established = true;
+    this.retryCount = 0;
+    this.reconnectingSince = null;
+    writeSession({ code, host: true, at: Date.now() });
     peer.on('connection', (conn) => {
       // One partner at a time
       if (this.conn) {
@@ -644,42 +716,108 @@ export class SoulLinkService {
   async join(rawCode: string): Promise<void> {
     const code = rawCode.trim().toUpperCase();
     if (this.status() !== 'idle' || !code) return;
-    const peer = await this.openPeer();
+    await this.joinRoom(code, false);
+  }
+
+  private async joinRoom(code: string, resuming: boolean): Promise<void> {
+    const peer = await this.openPeer(undefined, resuming);
     if (!peer) return;
     this.roomCode.set(code);
     this.isHost.set(false);
-    this.status.set('connecting');
+    this.status.set(resuming ? 'reconnecting' : 'connecting');
+    writeSession({ code, host: false, at: Date.now() });
     this.attach(peer.connect(PEER_PREFIX + code, { reliable: true }));
   }
 
-  /** Leaves the room (and closes it when hosting) */
+  /** Leaves the room (and closes it when hosting): no reconnection after this */
   disconnect(): void {
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.retryCount = 0;
+    this.reconnectingSince = null;
+    this.established = false;
+    writeSession(null);
+    this.teardown();
+    this.status.set('idle');
+    this.roomCode.set(null);
+    this.isHost.set(false);
+  }
+
+  /** Closes the connection but keeps the room for a reconnection */
+  private teardown(): void {
     const conn = this.conn;
     const peer = this.peer;
     this.conn = null;
     this.peer = null;
     conn?.close();
     peer?.destroy();
-    this.status.set('idle');
-    this.roomCode.set(null);
-    this.isHost.set(false);
     this.clearPartner();
   }
 
-  private async openPeer(id?: string): Promise<Peer | null> {
+  /** Back into the room after a reload or a lost connection */
+  private resume(session: RoomSession): Promise<void> {
+    this.retryTimer = null;
+    this.established = true;
+    this.reconnectingSince ??= Date.now();
+    this.roomCode.set(session.code);
+    this.isHost.set(session.host);
+    return session.host ? this.openRoom(session.code, true) : this.joinRoom(session.code, true);
+  }
+
+  private scheduleReconnect(): void {
+    const session = readSession();
+    if (!session || !this.enabled()) {
+      this.fail('The other player left.');
+      return;
+    }
+    this.teardown();
+    this.reconnectingSince ??= Date.now();
+    if (Date.now() - this.reconnectingSince > GIVE_UP_AFTER) {
+      this.fail('Connection lost. Create or join a room again.');
+      return;
+    }
+    this.status.set('reconnecting');
+    this.roomCode.set(session.code);
+    this.isHost.set(session.host);
+    const delay = RETRY_DELAYS[Math.min(this.retryCount++, RETRY_DELAYS.length - 1)];
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => void this.resume(session), delay);
+  }
+
+  private async openPeer(id: string | undefined, resuming: boolean): Promise<Peer | null> {
     this.error.set(null);
-    this.status.set('opening');
+    this.status.set(resuming ? 'reconnecting' : 'opening');
     const { Peer } = await import('peerjs');
     return new Promise((resolve) => {
       const peer = id ? new Peer(id) : new Peer();
       this.peer = peer;
-      peer.on('open', () => resolve(peer));
+      let opened = false;
+      peer.on('open', () => {
+        opened = true;
+        resolve(peer);
+      });
       peer.on('error', (error) => {
-        if (this.status() === 'connected') return;
-        this.fail(errorMessage(error));
-        resolve(null);
+        if (!opened) resolve(null);
+        this.onPeerError(peer, error);
+      });
+      // Lost the matchmaking server only: the room id is kept by reconnecting to it
+      peer.on('disconnected', () => {
+        setTimeout(() => {
+          if (this.peer === peer && !peer.destroyed && peer.disconnected) peer.reconnect();
+        }, 1000);
       });
     });
+  }
+
+  private onPeerError(peer: Peer, error: PeerError<string>): void {
+    if (peer !== this.peer) return;
+    // Server trouble while the players are still linked: nothing to do
+    if (this.status() === 'connected' && this.conn?.open) return;
+    if (this.established && RECOVERABLE.has(error.type)) {
+      this.scheduleReconnect();
+      return;
+    }
+    this.fail(errorMessage(error));
   }
 
   private attach(conn: DataConnection): void {
@@ -695,6 +833,9 @@ export class SoulLinkService {
         levelCap: this.isHost() ? this.levelCap.explicit() : null,
       });
       this.status.set('connected');
+      this.established = true;
+      this.retryCount = 0;
+      this.reconnectingSince = null;
       this.analytics.event('soul-link-connected');
     });
     conn.on('data', (data) => this.receive(data as Message));
@@ -708,9 +849,11 @@ export class SoulLinkService {
     this.clearPartner();
     if (this.isHost() && this.peer && !this.peer.destroyed) {
       this.status.set('waiting');
+    } else if (this.established) {
+      // The host may be reloading: keep trying the same room
+      this.scheduleReconnect();
     } else {
-      this.disconnect();
-      this.error.set('The other player left.');
+      this.fail('The other player left.');
     }
   }
 

@@ -119,8 +119,12 @@
 } @else if (soulLink.enabled()) {
   <section class="partner-pc">
     <p class="panel offline">
-      Soul Link is on, but you are not connected to another player.
-      <a routerLink="/soul-link">Connect</a>
+      @if (soulLink.status() === 'reconnecting') {
+        Soul Link: reconnecting to room {{ soulLink.roomCode() }}…
+      } @else {
+        Soul Link is on, but you are not connected to another player.
+        <a routerLink="/soul-link">Connect</a>
+      }
     </p>
   </section>
 }

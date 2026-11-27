@@ -6,6 +6,7 @@ import { Header } from './components/header/header';
 import { SideBrowser } from './components/side-browser/side-browser';
 import { Analytics } from './services/analytics';
 import { SidePanelState } from './states/side-panel';
+import { SoulLinkService } from './states/soul-link';
 
 const SPLASH_MAX_WAIT_MS = 8000;
 const SPLASH_MIN_MS = 400;
@@ -29,6 +30,8 @@ export class App {
 
   constructor() {
     inject(Analytics).trackPages();
+    // Created on every page, so a Soul Link room is resumed after a reload anywhere
+    inject(SoulLinkService);
     afterNextRender(() => this.hideSplashWhenImagesLoaded());
   }
 

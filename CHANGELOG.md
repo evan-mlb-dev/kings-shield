@@ -4,6 +4,15 @@ All notable changes to King's Shield. Versions follow [Semantic Versioning](http
 **major** for breaking changes (old saves or runs no longer read), **minor** for new features,
 **patch** for fixes.
 
+## [1.3.0] - 2026-11-27
+
+### Added
+
+- Soul Link rooms survive a page reload: the host reopens the same room code and the guest joins it
+  again on their own.
+- Lost Soul Link connections (partner reloading, phone asleep, server hiccup) reconnect
+  automatically for up to 10 minutes, with a "Reconnecting…" state and a button to leave.
+
 ## [1.2.0] - 2026-11-27
 
 ### Added
@@ -74,6 +83,7 @@ First public release.
   history and fainted box.
 - Deployment on GitHub Pages.
 
+[1.3.0]: https://github.com/evan-mlb-dev/kings-shield/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/evan-mlb-dev/kings-shield/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/evan-mlb-dev/kings-shield/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/evan-mlb-dev/kings-shield/releases/tag/v1.0.0
