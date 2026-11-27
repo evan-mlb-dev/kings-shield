@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { APP_VERSION, CHANGELOG_URL } from '../../shared/version';
 
 @Component({
   imports: [RouterLink],
@@ -7,4 +8,7 @@ import { RouterLink } from '@angular/router';
   styleUrl: './logo-app.scss',
   templateUrl: './logo-app.html',
 })
-export class LogoApp {}
+export class LogoApp {
+  protected readonly version = APP_VERSION;
+  protected readonly changelog = CHANGELOG_URL;
+}

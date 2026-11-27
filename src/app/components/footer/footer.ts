@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { APP_VERSION, CHANGELOG_URL } from '../../shared/version';
 
 @Component({
   imports: [],
@@ -6,4 +7,7 @@ import { Component } from '@angular/core';
   styleUrl: './footer.scss',
   templateUrl: './footer.html',
 })
-export class Footer {}
+export class Footer {
+  protected readonly version = APP_VERSION;
+  protected readonly changelog = CHANGELOG_URL;
+}

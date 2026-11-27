@@ -1,5 +1,8 @@
 # King's Shield
 
+[![Version](https://img.shields.io/github/package-json/v/evan-mlb-dev/kings-shield?label=version&color=8774f5)](CHANGELOG.md)
+[![Deploy](https://github.com/evan-mlb-dev/kings-shield/actions/workflows/deploy.yml/badge.svg)](https://github.com/evan-mlb-dev/kings-shield/actions/workflows/deploy.yml)
+
 A team builder for **Pokémon Radical Red** (Nuzlocke friendly). Load your `.sav` file, build a team from your party and PC, and check its type coverage.
 
 **Live site:** https://evan-mlb-dev.github.io/kings-shield/
@@ -47,6 +50,16 @@ The Pokémon data lives in `src/app/data/`. Scripts to refresh it:
 | `node src/app/data/fetch-learnsets.mjs` | `learnsets.json`: level-up moves, TMs and move tutors (with where and when they are reached) of every species (Save Editor) |
 | `node src/app/data/fetch-move-descriptions.mjs` | Move descriptions from Smogon in `moves.json` (run after `build-pokemon-db.mjs`) |
 | `node src/app/data/fetch-move-targets.mjs` | Spread moves (everyone / both foes) and priorities in `moves.json` (run after `build-pokemon-db.mjs`) |
+
+## Versioning
+
+The app follows [Semantic Versioning](https://semver.org/): **major** for breaking changes (old saves or runs no longer read), **minor** for new features, **patch** for fixes. The version lives in `package.json` and is shown in the header and the footer. Every release is listed in [CHANGELOG.md](CHANGELOG.md).
+
+To release a version:
+
+1. Bump the version without creating a commit: `npm version minor --no-git-tag-version` (or `patch` / `major`).
+2. Move the changes into a new section of `CHANGELOG.md`.
+3. Commit, then tag the release: `git tag v1.3.0` and `git push --tags`.
 
 ## Deployment
 

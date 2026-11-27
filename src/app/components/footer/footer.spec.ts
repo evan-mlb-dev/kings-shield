@@ -18,4 +18,9 @@ describe('Footer', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('shows the package.json version', async () => {
+    const { version } = await import('../../../../package.json');
+    expect(fixture.nativeElement.textContent).toContain(`v${version}`);
+  });
 });
