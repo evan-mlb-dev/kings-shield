@@ -78,7 +78,9 @@
         >
           <span class="known-slot">
             @if (slots().includes(learnable.move.id)) {
-              <span class="known-badge" title="Already known">✓ Known</span>
+              <span class="known-badge" title="Already known"
+                >✓<span class="known-word"> Known</span></span
+              >
             }
           </span>
           <span class="note">{{ learnable.note }}</span>

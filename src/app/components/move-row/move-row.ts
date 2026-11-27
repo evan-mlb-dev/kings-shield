@@ -198,6 +198,22 @@ import { typeColor } from '../../shared/type-colors';
       text-align: right;
     }
 
+    /* Narrow Save Editor (phones): tighter row, more room for the name */
+    @container form-panel (width < 520px) {
+      :host {
+        gap: 5px;
+        padding: 2px 8px 2px 6px;
+      }
+
+      app-move-category-icon {
+        width: 24px;
+      }
+
+      .spread-slot:empty {
+        display: none;
+      }
+    }
+
     .move-tooltip {
       --move-color: #555;
 

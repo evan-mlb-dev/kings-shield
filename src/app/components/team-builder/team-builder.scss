@@ -166,7 +166,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  @media (width <= 600px) {
+  @media (width <= 900px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -445,5 +445,47 @@
 
   &.cdk-drop-list-dragging {
     background: rgb(135 116 245 / 10%);
+  }
+}
+
+// touch screens have no hover: keep the remove button visible
+@media (hover: none) {
+  .remove-button {
+    opacity: 1;
+  }
+}
+
+@media (width <= 600px) {
+  .team-builder {
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .panel {
+    padding: 10px;
+  }
+
+  .team {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .pc-head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .pc-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .order-note.muted {
+      display: none;
+    }
+  }
+
+  .pc {
+    gap: 6px;
+    padding: 8px 4px;
   }
 }

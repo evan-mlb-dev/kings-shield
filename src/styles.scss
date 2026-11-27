@@ -74,6 +74,11 @@ html {
   zoom: calc(1 / var(--ui-zoom));
 }
 
+// no iOS "save image" menu on the long press that starts a drag
+.cdk-drag {
+  -webkit-touch-callout: none;
+}
+
 // the preview box keeps the on-screen size, its content gets the zoom back
 .cdk-drag-preview > * {
   zoom: var(--ui-zoom);

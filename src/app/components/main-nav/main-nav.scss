@@ -53,3 +53,39 @@
   width: 16px;
   height: 16px;
 }
+
+.short {
+  display: none;
+}
+
+@media (width <= 700px) {
+  .main-nav {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 2px 8px;
+    font-size: 0.62rem;
+
+    &.active::after {
+      right: 25%;
+      left: 25%;
+    }
+  }
+
+  .label {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
+
+  .tab-icon {
+    width: 18px;
+    height: 18px;
+  }
+}

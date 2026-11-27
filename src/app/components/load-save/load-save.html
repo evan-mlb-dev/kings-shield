@@ -31,11 +31,5 @@
     <span>{{ gameState.saveName() ? 'Load Save' : 'Load Save' }}</span>
   </button>
 
-  <input
-    type="file"
-    #fileInput
-    style="display: none"
-    (change)="onFileSelected($event)"
-    accept=".sav"
-  />
+  <input type="file" #fileInput style="display: none" (change)="onFileSelected($event)" />
 </div>

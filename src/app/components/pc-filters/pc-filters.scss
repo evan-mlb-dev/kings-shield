@@ -139,3 +139,34 @@
     border-color: #c22e28;
   }
 }
+
+@media (width <= 600px) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .filter-label {
+    margin-top: 4px;
+  }
+
+  // two rows of 9 types: easier to tap
+  .type-filters {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-auto-flow: row;
+    gap: 4px 2px;
+  }
+
+  .sort {
+    justify-content: flex-start;
+  }
+
+  .sort-button {
+    min-width: 0;
+    padding: 6px 10px;
+  }
+
+  .sort > .sort-button:first-child {
+    margin-right: 4px;
+  }
+}

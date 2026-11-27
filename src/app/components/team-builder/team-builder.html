@@ -66,7 +66,7 @@
               (cdkDragStarted)="draggingTeamMember.set(true)"
               (cdkDragEnded)="draggingTeamMember.set(false)"
             >
-              <app-pokemon-card [pokemon]="slot.mon" />
+              <app-pokemon-card class="wide-on-phone" [pokemon]="slot.mon" />
               @if (!isLocked(slot) && !drafting()) {
                 <button
                   type="button"

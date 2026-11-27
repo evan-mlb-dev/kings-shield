@@ -122,3 +122,9 @@
   gap: 12px;
   align-items: center;
 }
+
+@media (width <= 600px) {
+  .logo-app {
+    height: 40px;
+  }
+}

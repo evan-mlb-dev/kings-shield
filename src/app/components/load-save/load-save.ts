@@ -20,8 +20,9 @@ export class LoadSave {
 
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
+    // The same file can be picked again
+    event.target.value = '';
     if (file) {
-      this.gameState.setSaveName(file.name);
       const reader = new FileReader();
 
       reader.onload = (e: any) => {
@@ -31,14 +32,18 @@ export class LoadSave {
 
           console.debug(parseResult);
 
-          if (parseResult) {
-            this.gameState.setPkmnData(parseResult);
-            // Kept byte for byte for the Save Editor
-            this.saveBytes.set(new Uint8Array(arrayBuffer));
-            this.analytics.event('save-loaded');
+          if (!parseResult) {
+            alert(`${file.name} is not a Radical Red save. Pick the .sav file of your emulator.`);
+            return;
           }
+          this.gameState.setSaveName(file.name);
+          this.gameState.setPkmnData(parseResult);
+          // Kept byte for byte for the Save Editor
+          this.saveBytes.set(new Uint8Array(arrayBuffer));
+          this.analytics.event('save-loaded');
         } catch (error) {
           console.error('Error while processing the .sav file:', error);
+          alert(`${file.name} could not be read.`);
         }
       };
 

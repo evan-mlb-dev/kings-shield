@@ -580,6 +580,12 @@ export class SaveEditorPage {
   protected select(entry: Entry): void {
     this.selectedKey.set(entry.key);
     this.message.set(null);
+    // One column on phones: bring the form into view
+    if (matchMedia('(width <= 760px)').matches) {
+      setTimeout(() =>
+        document.querySelector('.form-panel')?.scrollIntoView({ behavior: 'smooth' }),
+      );
+    }
   }
 
   private readonly autoApply = effect(() => {

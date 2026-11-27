@@ -107,8 +107,14 @@ app-move-row.known {
 }
 
 @container form-panel (width < 520px) {
-  .note {
+  .note,
+  .known-word {
     display: none;
+  }
+
+  .known-slot {
+    width: auto;
+    margin-right: 0;
   }
 }
 

@@ -89,3 +89,38 @@
     transform: translateY(-2px);
   }
 }
+
+@media (width <= 600px) {
+  .load-save-container {
+    gap: 6px;
+  }
+
+  .save-file {
+    max-width: 120px;
+    padding: 5px 8px;
+    font-size: 0.65rem;
+  }
+
+  .load-save-button {
+    gap: 6px;
+    padding: 7px 12px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (width <= 400px) {
+  .save-file {
+    max-width: 90px;
+  }
+
+  .load-save-button {
+    padding: 7px 10px;
+  }
+}
+
+// very small phones: the file name does not fit next to the logo
+@media (width <= 359px) {
+  .save-file {
+    display: none;
+  }
+}
