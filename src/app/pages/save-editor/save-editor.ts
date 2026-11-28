@@ -125,13 +125,22 @@ export class SaveEditorPage {
         blocked: owned.has(id) ? undefined : 'Not in the bag',
       };
     });
-    return [...items, { id: 'rename:location', label: 'Name after met location' }];
+    const sootheBell = [...this.db.items.values()].find((i) => i.name === 'Soothe Bell')?.id;
+    return [
+      ...items,
+      { id: 'friendship:max', label: 'Max friendship', itemId: sootheBell },
+      { id: 'rename:location', label: 'Name after met location' },
+    ];
   });
 
   protected runMassAction(action: string): void {
     const [kind, id] = action.split(':');
     if (kind === 'rename') {
       this.renameAfterMetLocation();
+      return;
+    }
+    if (kind === 'friendship') {
+      this.maxFriendship();
       return;
     }
     if (kind !== 'item') return;
@@ -164,6 +173,20 @@ export class SaveEditorPage {
       if (after) this.selectedKey.set(after);
     } catch (error) {
       input.value = entry.parsed.nickname;
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    }
+  }
+
+  private maxFriendship(): void {
+    try {
+      const changed = this.session.maxFriendshipToAll();
+      this.message.set({
+        kind: 'ok',
+        text: changed
+          ? `${changed} Pokémon now have the highest friendship.`
+          : 'Every Pokémon already has the highest friendship.',
+      });
+    } catch (error) {
       this.message.set({ kind: 'error', text: (error as Error).message });
     }
   }

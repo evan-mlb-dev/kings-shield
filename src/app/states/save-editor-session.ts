@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { PokemonDb } from '../models/pokemon/pokemon-db';
 import { Analytics } from '../services/analytics';
-import { AbilityChoice, SaveEditError, SaveEditor } from '../services/save-editor';
+import { AbilityChoice, MAX_FRIENDSHIP, SaveEditError, SaveEditor } from '../services/save-editor';
 import {
   type GameId,
   ParsedPokemon,
@@ -51,6 +51,7 @@ export interface PendingChange {
   /** Held item name ("None" when taken off) */
   item?: string;
   ball?: string;
+  friendship?: number;
   moves?: string[];
 }
 
@@ -64,6 +65,7 @@ type ChangedFields = Pick<
   | 'ability'
   | 'item'
   | 'ball'
+  | 'friendship'
   | 'moves'
 >;
 
@@ -301,6 +303,32 @@ export class SaveEditorSession {
         const renamed = editor.setNickname(mon, name);
         const key = pokemonKey(mon);
         this.recordChange(key, key, renamed, { renamedFrom: mon.nickname });
+        changed++;
+      }
+    } catch (error) {
+      editor.writer.bytes.set(backup);
+      this._changes.set(changesBackup);
+      this.reparse();
+      throw error;
+    }
+    this.reparse();
+    return changed;
+  }
+
+  /** Every Pokémon (team and PC) gets the highest friendship; returns how many changed */
+  maxFriendshipToAll(): number {
+    const editor = this.editor;
+    const { team, pc } = this.editable();
+    if (!editor || !this.save()) throw new SaveEditError('No save to edit.');
+    const backup = editor.writer.bytes.slice();
+    const changesBackup = this._changes();
+    let changed = 0;
+    try {
+      for (const mon of [...team, ...pc]) {
+        if (mon.friendship === MAX_FRIENDSHIP) continue;
+        editor.setFriendship(mon, MAX_FRIENDSHIP);
+        const key = pokemonKey(mon);
+        this.recordChange(key, key, mon, { friendship: MAX_FRIENDSHIP });
         changed++;
       }
     } catch (error) {

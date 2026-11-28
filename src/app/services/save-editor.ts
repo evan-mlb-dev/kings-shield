@@ -32,6 +32,7 @@ const NICKNAME_LENGTH = 10;
 const PARTY = {
   species: 0x20,
   heldItem: 0x22,
+  friendship: 0x29,
   /** CFRU: byte after friendship */
   ball: 0x2a,
   dataChecksum: 0x1c,
@@ -52,6 +53,7 @@ const PARTY = {
 const BOX = {
   species: 0x1c,
   heldItem: 0x1e,
+  friendship: 0x25,
   ball: 0x26,
   experience: 0x20,
   ppBonuses: 0x24,
@@ -60,6 +62,8 @@ const BOX = {
   /** IVs / egg / hidden ability flag (u32) */
   ivWord: 0x36,
 } as const;
+
+export const MAX_FRIENDSHIP = 255;
 
 /** Highest move ID the PC format can hold (10 bits) */
 const MAX_BOX_MOVE_ID = 0x3ff;
@@ -167,6 +171,17 @@ export class SaveEditor {
     if (name === mon.nickname) return mon;
     encoded.forEach((b, i) => bytes.setU8(NICKNAME + i, b));
     return { ...mon, nickname: name };
+  }
+
+  /** Friendship (0-255). Returns the updated Pokémon. */
+  setFriendship(mon: ParsedPokemon, friendship: number): ParsedPokemon {
+    if (!Number.isInteger(friendship) || friendship < 0 || friendship > MAX_FRIENDSHIP) {
+      throw new SaveEditError(`Friendship must be between 0 and ${MAX_FRIENDSHIP}.`);
+    }
+    const bytes = this.locate(mon);
+    if (friendship === mon.friendship) return mon;
+    bytes.setU8(mon.location === 'party' ? PARTY.friendship : BOX.friendship, friendship);
+    return { ...mon, friendship };
   }
 
   /** Ball it was caught in (shared/balls.ts numbering). Returns the updated Pokémon. */

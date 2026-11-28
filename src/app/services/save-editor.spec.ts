@@ -282,6 +282,18 @@ describe.skipIf(!hasSave)('SaveEditor (real save)', () => {
     expect(() => editor.setHeldItem(save.team[0], 99999)).toThrow();
   });
 
+  it('sets the friendship, in the party and in the PC', () => {
+    for (const mon of [save.team[0], save.pc[0]]) {
+      expect(editor.setFriendship(mon, 255).friendship).toBe(255);
+      const list = mon.location === 'party' ? 'team' : 'pc';
+      const reread = reparse()[list].find(same(mon))!;
+      expect(reread.friendship).toBe(255);
+      expect(reread.ball).toBe(mon.ball);
+      expect(reread.ppBonuses).toBe(mon.ppBonuses);
+    }
+    expect(() => editor.setFriendship(save.team[0], 256)).toThrow();
+  });
+
   it('reads and changes the ball, in the party and in the PC', () => {
     // This save: Poké Balls (3) and Quick Balls (14)
     expect([...save.team, ...save.pc].every((m) => m.ball === 3 || m.ball === 14)).toBe(true);
