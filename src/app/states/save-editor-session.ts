@@ -31,6 +31,8 @@ export interface PendingChange {
   name: string;
   species: string;
   evolvedFrom?: string;
+  /** Nickname before a rename (the first one, when renamed twice) */
+  renamedFrom?: string;
   /** Only the changed fields are set */
   level?: number;
   nature?: string;
@@ -43,7 +45,7 @@ export interface PendingChange {
 
 type ChangedFields = Pick<
   PendingChange,
-  'evolvedFrom' | 'level' | 'nature' | 'shiny' | 'ability' | 'item' | 'moves'
+  'evolvedFrom' | 'renamedFrom' | 'level' | 'nature' | 'shiny' | 'ability' | 'item' | 'moves'
 >;
 
 @Injectable({
@@ -245,6 +247,33 @@ export class SaveEditorSession {
     return count;
   }
 
+  /** Renames every Pokémon (team and PC) with the name nameOf gives; null leaves it as it is */
+  setNicknameToAll(nameOf: (mon: ParsedPokemon) => string | null): number {
+    const editor = this.editor;
+    const { team, pc } = this.editable();
+    if (!editor || !this.save()) throw new SaveEditError('No save to edit.');
+    const backup = editor.writer.bytes.slice();
+    const changesBackup = this._changes();
+    let changed = 0;
+    try {
+      for (const mon of [...team, ...pc]) {
+        const name = nameOf(mon);
+        if (name === null || name === mon.nickname) continue;
+        const renamed = editor.setNickname(mon, name);
+        const key = pokemonKey(mon);
+        this.recordChange(key, key, renamed, { renamedFrom: mon.nickname });
+        changed++;
+      }
+    } catch (error) {
+      editor.writer.bytes.set(backup);
+      this._changes.set(changesBackup);
+      this.reparse();
+      throw error;
+    }
+    this.reparse();
+    return changed;
+  }
+
   /** Every Pokémon (team and PC) holds the item; returns how many changed */
   giveItemToAll(itemId: number): number {
     const editor = this.editor;
@@ -350,14 +379,16 @@ export class SaveEditorSession {
     const species = this.db.species.get(mon.speciesId)?.name ?? `#${mon.speciesId}`;
     this._changes.update((changes) => {
       const previous = changes.find((c) => c.key === oldKey);
-      // Evolving twice: keep the first species
+      // Evolving or renaming twice: keep the first species and name
       const evolvedFrom = previous?.evolvedFrom ?? fields.evolvedFrom;
+      const renamedFrom = previous?.renamedFrom ?? fields.renamedFrom;
       return [
         ...changes.filter((c) => c.key !== oldKey),
         {
           ...previous,
           ...fields,
           evolvedFrom,
+          renamedFrom,
           key: newKey,
           name: mon.nickname || species,
           species,

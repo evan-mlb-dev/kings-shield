@@ -151,6 +151,20 @@ export class SaveEditor {
     return edited;
   }
 
+  /** Nickname (10 characters max). Returns the updated Pokémon. */
+  setNickname(mon: ParsedPokemon, name: string): ParsedPokemon {
+    const encoded = encodeText(name, NICKNAME_LENGTH);
+    if (!encoded || !name.trim()) {
+      throw new SaveEditError(
+        `"${name}" cannot be a nickname: 1 to 10 letters, digits, spaces or simple symbols.`,
+      );
+    }
+    const bytes = this.locate(mon);
+    if (name === mon.nickname) return mon;
+    encoded.forEach((b, i) => bytes.setU8(NICKNAME + i, b));
+    return { ...mon, nickname: name };
+  }
+
   /** Held item (0: none). Returns the updated Pokémon. */
   setHeldItem(mon: ParsedPokemon, itemId: number): ParsedPokemon {
     if (itemId !== 0 && !this.lookup.items.has(itemId)) {

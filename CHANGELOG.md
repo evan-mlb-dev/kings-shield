@@ -4,6 +4,13 @@ All notable changes to King's Shield. Versions follow [Semantic Versioning](http
 **major** for breaking changes (old saves or runs no longer read), **minor** for new features,
 **patch** for fixes.
 
+## [Unreleased]
+
+### Added
+
+- Save Editor mass action: name every Pokémon after where it was caught ("R.3", "Viridian"…).
+  The starter, trades and events keep their name; the old name shows in the Changes table.
+
 ## [1.3.0] - 2026-11-27
 
 ### Added

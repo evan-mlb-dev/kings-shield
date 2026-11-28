@@ -30,6 +30,7 @@ import { PokemonSprite } from '../../shared/icons/pokemon-sprite';
 import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
 import { randomizedAbilityIds } from '../../shared/ability-randomizer';
+import { metLocationNickname } from '../../shared/met-locations';
 import { LevelCapState } from '../../states/level-cap';
 import { SaveEditorSession } from '../../states/save-editor-session';
 import { SidePanelState } from '../../states/side-panel';
@@ -113,7 +114,7 @@ export class SaveEditorPage {
   protected readonly massActions = computed<MassAction[]>(() => {
     const bag = this.session.holdableItems();
     const owned = new Set([...(bag?.items ?? []), ...(bag?.berries ?? [])]);
-    return MASS_ITEMS.map((id) => {
+    const items = MASS_ITEMS.map((id) => {
       const name = this.db.items.get(id)?.name ?? `#${id}`;
       return {
         id: `item:${id}`,
@@ -122,10 +123,15 @@ export class SaveEditorPage {
         blocked: owned.has(id) ? undefined : 'Not in the bag',
       };
     });
+    return [...items, { id: 'rename:location', label: 'Name after met location' }];
   });
 
   protected runMassAction(action: string): void {
     const [kind, id] = action.split(':');
+    if (kind === 'rename') {
+      this.renameAfterMetLocation();
+      return;
+    }
     if (kind !== 'item') return;
     try {
       const name = withArticle(this.db.items.get(Number(id))?.name ?? 'item');
@@ -135,6 +141,20 @@ export class SaveEditorPage {
         text: changed
           ? `${changed} Pokémon now hold ${name}.`
           : `Every Pokémon already holds ${name}.`,
+      });
+    } catch (error) {
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    }
+  }
+
+  private renameAfterMetLocation(): void {
+    try {
+      const renamed = this.session.setNicknameToAll((mon) => metLocationNickname(mon.metLocation));
+      this.message.set({
+        kind: 'ok',
+        text: renamed
+          ? `${renamed} Pokémon named after where they were caught.`
+          : 'Every Pokémon already has the name of where it was caught.',
       });
     } catch (error) {
       this.message.set({ kind: 'error', text: (error as Error).message });

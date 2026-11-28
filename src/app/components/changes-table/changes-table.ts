@@ -16,7 +16,12 @@ import { PendingChange } from '../../states/save-editor-session';
     </div>
     @for (change of changes(); track change.key) {
       <div class="change-row" role="row">
-        <b role="cell">{{ change.name }}</b>
+        <b role="cell"
+          >{{ change.name }}
+          @if (change.renamedFrom) {
+            <span class="evolved">(was {{ change.renamedFrom }})</span>
+          }
+        </b>
         <span role="cell" class="species"
           >{{ change.species }}
           @if (change.evolvedFrom) {

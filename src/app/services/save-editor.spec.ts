@@ -282,6 +282,19 @@ describe.skipIf(!hasSave)('SaveEditor (real save)', () => {
     expect(() => editor.setHeldItem(save.team[0], 99999)).toThrow();
   });
 
+  it('renames Pokémon, in the party and in the PC', () => {
+    for (const mon of [save.team[0], save.pc[0]]) {
+      const renamed = editor.setNickname(mon, 'Route 3');
+      expect(renamed.nickname).toBe('Route 3');
+      expect(reparse()[mon.location === 'party' ? 'team' : 'pc'].find(same(mon))?.nickname).toBe(
+        'Route 3',
+      );
+    }
+    expect(() => editor.setNickname(save.team[0], 'Way too long name')).toThrow();
+    expect(() => editor.setNickname(save.team[0], '')).toThrow();
+    expect(() => editor.setNickname(save.team[0], 'Café#1')).toThrow();
+  });
+
   it('makes another team the party: PC Pokémon join it, party ones go to the PC', () => {
     const fromPc = save.pc
       .filter((p) => !p.isEgg && db.species.get(p.speciesId)?.growthRate)
