@@ -185,14 +185,10 @@ export class SaveEditorPage {
   });
 
   /** ID the toolbar gives to every Pokémon: the player's own by default */
-  /** The ID every Pokémon shares, else the player's own */
-  protected readonly otForAll = computed(() => {
-    const { team, pc } = this.session.editable();
-    const ids = new Set([...team, ...pc].map((m) => m.trainerId));
-    return ids.size === 1 ? [...ids][0] : (this.myTrainerId()?.trainerId ?? 0);
-  });
+  /** The player's own ID, shown in the toolbar */
+  protected readonly otForAll = computed(() => this.myTrainerId()?.trainerId ?? 0);
 
-  /** Typed in the toolbar: every Pokémon gets it (with the player's secret ID) */
+  /** Typed in the toolbar: the player's ID changes, their secret ID is kept */
   protected setOtForAll(input: HTMLInputElement): void {
     const text = input.value.trim();
     const id = Number(text);
@@ -202,24 +198,30 @@ export class SaveEditorPage {
       this.message.set({ kind: 'error', text: 'A trainer ID is a number from 0 to 65535.' });
       return;
     }
-    this.giveOtToAll(id, mine.secretId);
+    this.changePlayerId(id, mine.secretId);
     input.value = this.trainerIdLabel(this.otForAll());
   }
 
-  /** A made-up trainer: random ID and secret ID */
+  /** A new random trainer ID and secret ID for the player: a new randomizer seed */
   protected randomOtForAll(): void {
     const [id, secret] = crypto.getRandomValues(new Uint16Array(2));
-    this.giveOtToAll(id, secret);
+    this.changePlayerId(id, secret);
   }
 
-  private giveOtToAll(id: number, secretId: number): void {
+  private changePlayerId(id: number, secretId: number): void {
     try {
-      const changed = this.session.setTrainerIdToAll(id, secretId);
+      const changed = this.session.setPlayerTrainerId(id, secretId);
+      const options = this.session.save()?.randomizer;
+      const seed =
+        options?.abilities || options?.learnsets
+          ? ' Random abilities and learnsets follow the new seed.'
+          : '';
       this.message.set({
         kind: 'ok',
-        text: changed
-          ? `${changed} Pokémon now have the trainer ID ${this.trainerIdLabel(id)}.`
-          : `Every Pokémon already has the trainer ID ${this.trainerIdLabel(id)}.`,
+        text:
+          `Your trainer ID is now ${this.trainerIdLabel(id)}` +
+          (changed ? `, and ${changed} of your Pokémon with it.` : '.') +
+          seed,
       });
     } catch (error) {
       this.message.set({ kind: 'error', text: (error as Error).message });

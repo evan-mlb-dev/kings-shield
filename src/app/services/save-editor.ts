@@ -24,6 +24,8 @@ const PC_MAIN_SLOTS = 562;
 const PC_EXTRA_SLOTS = 63;
 const PARTY_COUNT_OFFSET = 0x34;
 
+/** Player's trainer ID then secret ID (u16 each), in the trainer section */
+const PLAYER_ID = 0x0a;
 /** Original trainer ID (u16) then secret ID (u16), at 0x04 in both formats */
 const OT_ID = 0x04;
 /** Nickname: 10 bytes at 0x08 in both formats */
@@ -183,6 +185,20 @@ export class SaveEditor {
     return edited.isShiny === mon.isShiny
       ? edited
       : this.setNatureAndShiny(edited, { shiny: mon.isShiny });
+  }
+
+  /** The player's own trainer ID and secret ID; Radical Red's randomizer seeds itself with them */
+  setPlayerTrainerId(trainerId: number, secretId: number): void {
+    for (const id of [trainerId, secretId]) {
+      if (!Number.isInteger(id) || id < 0 || id > 0xffff) {
+        throw new SaveEditError('A trainer ID is a number from 0 to 65535.');
+      }
+    }
+    this.writer.view.setUint32(
+      this.writer.sectionOffset(0) + PLAYER_ID,
+      ((secretId << 16) | trainerId) >>> 0,
+      true,
+    );
   }
 
   /** Nickname (10 characters max). Returns the updated Pokémon. */

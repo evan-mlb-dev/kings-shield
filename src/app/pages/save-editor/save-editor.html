@@ -21,6 +21,9 @@
               >new team</span
             >
           }
+          @if (session.playerIdChanged()) {
+            <span title="Your trainer ID changed (randomizer seed)">· new trainer ID</span>
+          }
           · not saved
         } @else if (saveBytes.edited()) {
           Saved on the site · not downloaded yet
@@ -35,7 +38,7 @@
       />
       @if (myTrainerId(); as mine) {
         <div class="level-cap ot-all">
-          <label class="cap-label" for="ot-all">OT ID</label>
+          <label class="cap-label" for="ot-all">Trainer ID</label>
           <input
             id="ot-all"
             class="text-input trainer-id-input"
@@ -44,17 +47,14 @@
             maxlength="5"
             autocomplete="off"
             [value]="trainerIdLabel(otForAll())"
-            [title]="
-              'Trainer ID of every Pokémon (team and PC), shininess kept. Yours: ' +
-              trainerIdLabel(mine.trainerId)
-            "
+            title="Your trainer ID (the randomizer seed of the run): your Pokémon follow it, shininess kept"
             (change)="setOtForAll($any($event.target))"
             (keydown.enter)="$any($event.target).blur()"
           />
           <button
             type="button"
             class="cap-button"
-            title="A random trainer (ID and secret ID) for every Pokémon, shininess kept"
+            title="A new random trainer ID and secret ID for you: a new randomizer seed"
             (click)="randomOtForAll()"
           >
             Random

@@ -160,7 +160,23 @@ export class SaveEditorSession {
   readonly unavailable = signal<string | null>(null);
   private readonly _changes = signal<PendingChange[]>([]);
   readonly changes = this._changes.asReadonly();
-  readonly hasChanges = computed(() => this._changes().length > 0 || this.partyChanged());
+  /** Player's trainer ID when the save was opened */
+  private readonly openedTrainerId = signal<{ trainerId: number; secretId: number } | null>(null);
+
+  /** The player's own trainer ID was changed (randomizer seed) */
+  readonly playerIdChanged = computed(() => {
+    const save = this.save();
+    const opened = this.openedTrainerId();
+    return (
+      !!save &&
+      !!opened &&
+      (save.trainerId !== opened.trainerId || save.secretId !== opened.secretId)
+    );
+  });
+
+  readonly hasChanges = computed(
+    () => this._changes().length > 0 || this.partyChanged() || this.playerIdChanged(),
+  );
 
   constructor() {
     effect(() => {
@@ -193,6 +209,10 @@ export class SaveEditorSession {
     this.editor = new SaveEditor(opened.editor, this.db);
     this.original = bytes.slice();
     this.reparse();
+    const first = this.save();
+    this.openedTrainerId.set(
+      first ? { trainerId: first.trainerId, secretId: first.secretId } : null,
+    );
   }
 
   apply(mon: ParsedPokemon, edit: PokemonEdit): void {
@@ -356,19 +376,26 @@ export class SaveEditorSession {
     return changed;
   }
 
-  /** Every Pokémon (team and PC) gets this trainer ID and secret ID, shininess kept */
-  setTrainerIdToAll(trainerId: number, secretId: number): number {
+  /**
+   * New trainer ID for the player (the randomizer seed of a Radical Red run). The player's own
+   * Pokémon follow it, so they stay theirs (shininess kept); returns how many of them changed.
+   */
+  setPlayerTrainerId(trainerId: number, secretId: number): number {
     const editor = this.editor;
+    const save = this.save();
+    if (!editor || !save) throw new SaveEditError('No save to edit.');
+    const old = { trainerId: save.trainerId, secretId: save.secretId };
+    if (old.trainerId === trainerId && old.secretId === secretId) return 0;
     const { team, pc } = this.editable();
-    if (!editor || !this.save()) throw new SaveEditError('No save to edit.');
     const backup = editor.writer.bytes.slice();
     const changesBackup = this._changes();
     const renamedBackup = new Map(this.renamed);
     const label = String(trainerId).padStart(5, '0');
     let changed = 0;
     try {
+      editor.setPlayerTrainerId(trainerId, secretId);
       for (const mon of [...team, ...pc]) {
-        if (mon.trainerId === trainerId && mon.secretId === secretId) continue;
+        if (mon.trainerId !== old.trainerId || mon.secretId !== old.secretId) continue;
         const edited = editor.setTrainerId(mon, trainerId, secretId);
         // The key holds the IDs: follow it, as for a nature change
         const oldKey = pokemonKey(mon);

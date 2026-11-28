@@ -10,8 +10,8 @@ All notable changes to King's Shield. Versions follow [Semantic Versioning](http
 
 - Save Editor: change a Pokémon's original trainer ID, or make it yours in one click; its
   shininess is kept.
-- Save Editor toolbar: give a trainer ID to every Pokémon at once, typed or random (ID and secret
-  ID); shininess is kept.
+- Save Editor toolbar: change the player's trainer ID, typed or random (ID and secret ID), which
+  changes the randomizer seed; the player's own Pokémon follow it and keep their shininess.
 - Save Editor: a Save button keeps the changes on the site without downloading the file; Download
   stays available afterwards.
 - Save Editor list in three groups, as in Team Building: Team, PC and Reserve.

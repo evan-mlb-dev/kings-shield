@@ -299,6 +299,17 @@ describe.skipIf(!hasSave)('SaveEditor (real save)', () => {
     expect(() => editor.setTrainerId(save.team[0], 70000, 0)).toThrow();
   });
 
+  it("changes the player's trainer ID, the randomizer seed", () => {
+    editor.setPlayerTrainerId(4242, 777);
+    const reread = reparse();
+    expect([reread.trainerId, reread.secretId]).toEqual([4242, 777]);
+    for (const mon of [...reread.team, ...reread.pc]) {
+      if (mon.randomAbilities) expect(mon.randomAbilities.otId).toBe(((777 << 16) | 4242) >>> 0);
+    }
+    expect(reread.team.map((m) => m.trainerId)).toEqual(save.team.map((m) => m.trainerId));
+    expect(() => editor.setPlayerTrainerId(70000, 0)).toThrow();
+  });
+
   it('sets the friendship, in the party and in the PC', () => {
     for (const mon of [save.team[0], save.pc[0]]) {
       expect(editor.setFriendship(mon, 255).friendship).toBe(255);
