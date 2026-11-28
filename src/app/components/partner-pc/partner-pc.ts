@@ -75,13 +75,13 @@ export class PartnerPc {
     return Math.round(Math.min(1, Math.max(0, (value - 20) / 75)) * 180);
   }
 
-  /** Partner's Pokémon outside their team, fainted ones last */
+  /** Partner's Pokémon outside their team; the dead ones are not shown */
   protected readonly pc = computed<Entry[]>(() => {
     const inTeam = new Set(this.soulLink.partnerTeam().teamKeys);
-    const entries = (this.soulLink.partnerSave()?.mons ?? [])
+    return (this.soulLink.partnerSave()?.mons ?? [])
       .filter((p) => !p.isEgg && !inTeam.has(pokemonKey(p)))
-      .map((p) => this.toEntry(p));
-    return [...entries.filter((e) => !e.fainted), ...entries.filter((e) => e.fainted)];
+      .map((p) => this.toEntry(p))
+      .filter((e) => !e.fainted);
   });
 
   /** Same filters as my PC, with their own state */

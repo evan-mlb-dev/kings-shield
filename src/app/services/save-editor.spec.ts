@@ -282,6 +282,23 @@ describe.skipIf(!hasSave)('SaveEditor (real save)', () => {
     expect(() => editor.setHeldItem(save.team[0], 99999)).toThrow();
   });
 
+  it('changes the original trainer ID and keeps the shininess', () => {
+    const shiny = [...save.team, ...save.pc].find((m) => m.isShiny)!;
+    const plain = [...save.team, ...save.pc].find((m) => !m.isShiny)!;
+    for (const mon of [shiny, plain]) {
+      const edited = editor.setTrainerId(mon, 12345, 54321);
+      expect(edited.isShiny).toBe(mon.isShiny);
+      expect(isShinyPersonality(edited.personality, 12345, 54321)).toBe(mon.isShiny);
+      const list = mon.location === 'party' ? 'team' : 'pc';
+      const reread = reparse()[list].find((m) => m.personality === edited.personality)!;
+      expect([reread.trainerId, reread.secretId]).toEqual([12345, 54321]);
+      expect(reread.isShiny).toBe(mon.isShiny);
+      expect(reread.personality % 25).toBe(mon.personality % 25);
+      expect(reread.speciesId).toBe(mon.speciesId);
+    }
+    expect(() => editor.setTrainerId(save.team[0], 70000, 0)).toThrow();
+  });
+
   it('sets the friendship, in the party and in the PC', () => {
     for (const mon of [save.team[0], save.pc[0]]) {
       expect(editor.setFriendship(mon, 255).friendship).toBe(255);

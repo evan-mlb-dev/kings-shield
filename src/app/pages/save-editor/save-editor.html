@@ -14,18 +14,18 @@
       <div class="pending">
         @if (session.hasChanges()) {
           @if (session.changes().length) {
-            <b>{{ session.changes().length }}</b> Pokémon edited{{
-              session.partyChanged() ? ', ' : ''
-            }}
+            <b>{{ session.changes().length }}</b> edited{{ session.partyChanged() ? ', ' : '' }}
           }
           @if (session.partyChanged()) {
             <span title="The Team Building team becomes the party of the downloaded save"
               >new team</span
             >
           }
-          · not downloaded yet
+          · not saved
+        } @else if (saveBytes.edited()) {
+          Saved on the site · not downloaded yet
         } @else {
-          No change yet: select a Pokémon to edit it.
+          No change yet
         }
       </div>
       <app-mass-action-menu
@@ -33,6 +33,34 @@
         [disabled]="!session.save()"
         (run)="runMassAction($event)"
       />
+      @if (myTrainerId(); as mine) {
+        <div class="level-cap ot-all">
+          <label class="cap-label" for="ot-all">OT ID</label>
+          <input
+            id="ot-all"
+            class="text-input trainer-id-input"
+            type="text"
+            inputmode="numeric"
+            maxlength="5"
+            autocomplete="off"
+            [value]="trainerIdLabel(otForAll())"
+            [title]="
+              'Trainer ID of every Pokémon (team and PC), shininess kept. Yours: ' +
+              trainerIdLabel(mine.trainerId)
+            "
+            (change)="setOtForAll($any($event.target))"
+            (keydown.enter)="$any($event.target).blur()"
+          />
+          <button
+            type="button"
+            class="cap-button"
+            title="A random trainer (ID and secret ID) for every Pokémon, shininess kept"
+            (click)="randomOtForAll()"
+          >
+            Random
+          </button>
+        </div>
+      }
       <div class="level-cap">
         <label class="cap-label" for="level-cap">Level cap</label>
         <app-number-stepper
@@ -65,8 +93,17 @@
       </button>
       <button
         type="button"
-        class="primary-button download"
+        class="ghost-button save"
+        title="Keep the changes on the site (Team Building, Soul Link) without downloading the file"
         [disabled]="!session.hasChanges()"
+        (click)="save()"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        class="primary-button download"
+        [disabled]="!session.canDownload()"
         (click)="download()"
       >
         Download edited save
@@ -257,6 +294,42 @@
                     />
                     @if (ball() !== null) {
                       <app-ball-picker compact [value]="ball()" (valueChange)="ball.set($event)" />
+                    }
+                  </div>
+                  <div class="field">
+                    <label class="label" for="edit-trainer-id">OT ID</label>
+                    <input
+                      id="edit-trainer-id"
+                      class="text-input trainer-id-input"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="5"
+                      autocomplete="off"
+                      title="Original trainer ID (0 to 65535): Pokémon from another trainer may disobey"
+                      [value]="trainerIdLabel(entry.parsed.trainerId)"
+                      (change)="changeTrainerId($any($event.target))"
+                      (keydown.enter)="$any($event.target).blur()"
+                    />
+                    @if (myTrainerId(); as mine) {
+                      @if (
+                        mine.trainerId !== entry.parsed.trainerId ||
+                        mine.secretId !== entry.parsed.secretId
+                      ) {
+                        <button
+                          type="button"
+                          class="link-button inline"
+                          [title]="
+                            'Use your own ID (' +
+                            trainerIdLabel(mine.trainerId) +
+                            '), secret ID included'
+                          "
+                          (click)="useMyTrainerId()"
+                        >
+                          Use mine
+                        </button>
+                      } @else {
+                        <span class="hint">Yours</span>
+                      }
                     }
                   </div>
                   <div class="field">

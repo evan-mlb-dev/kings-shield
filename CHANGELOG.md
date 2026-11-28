@@ -8,6 +8,14 @@ All notable changes to King's Shield. Versions follow [Semantic Versioning](http
 
 ### Added
 
+- Save Editor: change a Pokémon's original trainer ID, or make it yours in one click; its
+  shininess is kept.
+- Save Editor toolbar: give a trainer ID to every Pokémon at once, typed or random (ID and secret
+  ID); shininess is kept.
+- Save Editor: a Save button keeps the changes on the site without downloading the file; Download
+  stays available afterwards.
+- Save Editor list in three groups, as in Team Building: Team, PC and Reserve.
+- Soul Link: the other player's dead Pokémon are no longer shown in their PC.
 - Save Editor: rename a Pokémon, and change the ball it was caught in (with its icon).
 - Save Editor mass action: max friendship for every Pokémon.
 - Save Editor mass action: give every Pokémon the ball that matches its sprite colours.

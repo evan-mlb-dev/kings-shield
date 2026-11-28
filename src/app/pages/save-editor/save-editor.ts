@@ -34,7 +34,13 @@ import { metLocationNickname } from '../../shared/met-locations';
 import { BallPicker } from '../../components/ball-picker/ball-picker';
 import { BallMatcher } from '../../services/ball-matcher';
 import { LevelCapState } from '../../states/level-cap';
-import { ABILITY_ITEMS, SaveEditorSession } from '../../states/save-editor-session';
+import {
+  ABILITY_ITEMS,
+  type PokemonEdit,
+  SaveEditorSession,
+} from '../../states/save-editor-session';
+import { PcFiltersState } from '../../states/pc-filters';
+import { SaveBytesState } from '../../states/save-bytes';
 import { SidePanelState } from '../../states/side-panel';
 
 const SMOGON_DEX = 'https://www.smogon.com/dex/';
@@ -78,6 +84,8 @@ interface Entry {
 export class SaveEditorPage {
   private readonly db = inject(PokemonDb);
   protected readonly session = inject(SaveEditorSession);
+  private readonly pcFilters = inject(PcFiltersState);
+  protected readonly saveBytes = inject(SaveBytesState);
   private readonly ballMatcher = inject(BallMatcher);
 
   protected readonly search = signal('');
@@ -165,6 +173,93 @@ export class SaveEditorPage {
           ? `${changed} Pokémon now hold ${name}.`
           : `Every Pokémon already holds ${name}.`,
       });
+    } catch (error) {
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    }
+  }
+
+  /** The player's own trainer ID and secret ID, from the save */
+  protected readonly myTrainerId = computed(() => {
+    const save = this.session.save();
+    return save ? { trainerId: save.trainerId, secretId: save.secretId } : null;
+  });
+
+  /** ID the toolbar gives to every Pokémon: the player's own by default */
+  /** The ID every Pokémon shares, else the player's own */
+  protected readonly otForAll = computed(() => {
+    const { team, pc } = this.session.editable();
+    const ids = new Set([...team, ...pc].map((m) => m.trainerId));
+    return ids.size === 1 ? [...ids][0] : (this.myTrainerId()?.trainerId ?? 0);
+  });
+
+  /** Typed in the toolbar: every Pokémon gets it (with the player's secret ID) */
+  protected setOtForAll(input: HTMLInputElement): void {
+    const text = input.value.trim();
+    const id = Number(text);
+    const mine = this.myTrainerId();
+    if (!/^\d{1,5}$/.test(text) || id > 0xffff || !mine) {
+      input.value = this.trainerIdLabel(this.otForAll());
+      this.message.set({ kind: 'error', text: 'A trainer ID is a number from 0 to 65535.' });
+      return;
+    }
+    this.giveOtToAll(id, mine.secretId);
+    input.value = this.trainerIdLabel(this.otForAll());
+  }
+
+  /** A made-up trainer: random ID and secret ID */
+  protected randomOtForAll(): void {
+    const [id, secret] = crypto.getRandomValues(new Uint16Array(2));
+    this.giveOtToAll(id, secret);
+  }
+
+  private giveOtToAll(id: number, secretId: number): void {
+    try {
+      const changed = this.session.setTrainerIdToAll(id, secretId);
+      this.message.set({
+        kind: 'ok',
+        text: changed
+          ? `${changed} Pokémon now have the trainer ID ${this.trainerIdLabel(id)}.`
+          : `Every Pokémon already has the trainer ID ${this.trainerIdLabel(id)}.`,
+      });
+    } catch (error) {
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    }
+  }
+
+  protected trainerIdLabel(id: number): string {
+    return String(id).padStart(5, '0');
+  }
+
+  /** Applied on blur / Enter; the secret ID is kept */
+  protected changeTrainerId(input: HTMLInputElement): void {
+    const entry = this.selected();
+    if (!entry) return;
+    const text = input.value.trim();
+    const id = Number(text);
+    if (!/^\d{1,5}$/.test(text) || id > 0xffff) {
+      input.value = this.trainerIdLabel(entry.parsed.trainerId);
+      this.message.set({ kind: 'error', text: 'A trainer ID is a number from 0 to 65535.' });
+      return;
+    }
+    if (id === entry.parsed.trainerId) {
+      input.value = this.trainerIdLabel(id);
+      return;
+    }
+    this.applyEdit(entry, { trainerId: id });
+  }
+
+  /** Visible and secret ID of the player: the Pokémon becomes theirs */
+  protected useMyTrainerId(): void {
+    const entry = this.selected();
+    const mine = this.myTrainerId();
+    if (entry && mine) this.applyEdit(entry, mine);
+  }
+
+  private applyEdit(entry: Entry, edit: PokemonEdit): void {
+    try {
+      this.session.apply(entry.parsed, edit);
+      const after = this.session.changes().at(-1)?.key;
+      if (after) this.selectedKey.set(after);
     } catch (error) {
       this.message.set({ kind: 'error', text: (error as Error).message });
     }
@@ -274,16 +369,21 @@ export class SaveEditorPage {
           : `Team, slot ${i + 1} (now ${savedAt(p)})`,
       ),
     );
+    // Same split as Team Building: the PC, then the Pokémon set aside in the reserve
+    const reserveOrder = this.pcFilters.reserve();
+    const reserved = new Set(reserveOrder);
+    const where = (p: ParsedPokemon, place: string) =>
+      p.location === 'party' ? `${place} (now ${savedAt(p)})` : savedAt(p);
     const pc = pcMons
-      .map((p) =>
-        toEntry(
-          p,
-          'PC · by base stats',
-          p.location === 'party' ? `PC (now ${savedAt(p)})` : savedAt(p),
-        ),
-      )
+      .filter((p) => !reserved.has(pokemonKey(p)))
+      .map((p) => toEntry(p, 'PC · by base stats', where(p, 'PC')))
       .sort((a, b) => b.mon.baseStatTotal - a.mon.baseStatTotal);
-    return [...teamEntries, ...pc];
+    const byKey = new Map(pcMons.map((p) => [pokemonKey(p), p]));
+    const reserve = reserveOrder
+      .map((key) => byKey.get(key))
+      .filter((p): p is ParsedPokemon => !!p)
+      .map((p) => toEntry(p, 'Reserve', where(p, 'Reserve')));
+    return [...teamEntries, ...pc, ...reserve];
   });
 
   protected readonly visible = computed(() => {
@@ -741,6 +841,18 @@ export class SaveEditorPage {
       return next;
     });
     this.moveSlots.set(this.savedSlots());
+  }
+
+  protected save(): void {
+    try {
+      this.session.saveToSite();
+      this.message.set({
+        kind: 'ok',
+        text: 'Saved: the site now uses the edited save. Download it to play it in the game.',
+      });
+    } catch (error) {
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    }
   }
 
   protected download(): void {

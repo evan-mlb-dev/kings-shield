@@ -14,6 +14,7 @@ import { PendingChange } from '../../states/save-editor-session';
       <span role="columnheader">Item</span>
       <span role="columnheader">Ball</span>
       <span role="columnheader">Friendship</span>
+      <span role="columnheader">OT ID</span>
       <span role="columnheader">Moves</span>
     </div>
     @for (change of changes(); track change.key) {
@@ -39,6 +40,7 @@ import { PendingChange } from '../../states/save-editor-session';
         <span role="cell">{{ change.item ?? '—' }}</span>
         <span role="cell">{{ change.ball ?? '—' }}</span>
         <span role="cell">{{ change.friendship ?? '—' }}</span>
+        <span role="cell">{{ change.trainerId ?? '—' }}</span>
         <span role="cell">{{ change.moves?.join(', ') ?? '—' }}</span>
       </div>
     }
@@ -55,8 +57,8 @@ import { PendingChange } from '../../states/save-editor-session';
 
     .change-row {
       display: grid;
-      grid-template-columns: 1.2fr 1.2fr 0.6fr 1fr 0.8fr 1fr 1fr 0.9fr 0.8fr 3fr;
-      min-width: 740px;
+      grid-template-columns: 1.2fr 1.2fr 0.6fr 1fr 0.8fr 1fr 1fr 0.9fr 0.8fr 0.7fr 3fr;
+      min-width: 800px;
       gap: 12px;
       align-items: baseline;
       padding: 3px 0;

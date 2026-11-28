@@ -22,6 +22,9 @@ export interface PokemonEdit {
   species?: number;
   /** New nickname (10 characters max) */
   nickname?: string;
+  /** Original trainer ID (visible) and secret ID; the secret ID is kept when not given */
+  trainerId?: number;
+  secretId?: number;
   level?: number;
   nature?: number;
   shiny?: boolean;
@@ -52,6 +55,8 @@ export interface PendingChange {
   item?: string;
   ball?: string;
   friendship?: number;
+  /** New original trainer ID, as shown in the game (5 digits) */
+  trainerId?: string;
   moves?: string[];
 }
 
@@ -66,6 +71,7 @@ type ChangedFields = Pick<
   | 'item'
   | 'ball'
   | 'friendship'
+  | 'trainerId'
   | 'moves'
 >;
 
@@ -207,6 +213,14 @@ export class SaveEditorSession {
         current = editor.setNickname(current, edit.nickname);
         fields.renamedFrom = before;
       }
+      // Before nature / shiny: shininess is worked out with the new ID
+      if (edit.trainerId !== undefined) {
+        const secretId = edit.secretId ?? current.secretId;
+        if (edit.trainerId !== current.trainerId || secretId !== current.secretId) {
+          current = editor.setTrainerId(current, edit.trainerId, secretId);
+          fields.trainerId = String(edit.trainerId).padStart(5, '0');
+        }
+      }
       if (edit.nature !== undefined || edit.shiny !== undefined) {
         const before = current;
         current = editor.setNatureAndShiny(current, { nature: edit.nature, shiny: edit.shiny });
@@ -342,6 +356,38 @@ export class SaveEditorSession {
     return changed;
   }
 
+  /** Every Pokémon (team and PC) gets this trainer ID and secret ID, shininess kept */
+  setTrainerIdToAll(trainerId: number, secretId: number): number {
+    const editor = this.editor;
+    const { team, pc } = this.editable();
+    if (!editor || !this.save()) throw new SaveEditError('No save to edit.');
+    const backup = editor.writer.bytes.slice();
+    const changesBackup = this._changes();
+    const renamedBackup = new Map(this.renamed);
+    const label = String(trainerId).padStart(5, '0');
+    let changed = 0;
+    try {
+      for (const mon of [...team, ...pc]) {
+        if (mon.trainerId === trainerId && mon.secretId === secretId) continue;
+        const edited = editor.setTrainerId(mon, trainerId, secretId);
+        // The key holds the IDs: follow it, as for a nature change
+        const oldKey = pokemonKey(mon);
+        const newKey = pokemonKey(edited);
+        if (newKey !== oldKey) this.rename(oldKey, newKey);
+        this.recordChange(oldKey, newKey, edited, { trainerId: label });
+        changed++;
+      }
+    } catch (error) {
+      editor.writer.bytes.set(backup);
+      this._changes.set(changesBackup);
+      this.renamed = renamedBackup;
+      this.reparse();
+      throw error;
+    }
+    this.reparse();
+    return changed;
+  }
+
   /** Every Pokémon (team and PC) gets the highest friendship; returns how many changed */
   maxFriendshipToAll(): number {
     const editor = this.editor;
@@ -408,10 +454,25 @@ export class SaveEditorSession {
     return originalKey;
   }
 
+  /** Something to download: pending changes, or a save made here not downloaded yet */
+  readonly canDownload = computed(() => this.hasChanges() || this.saveBytes.edited());
+
+  /** The changes become the site's save (Team Building, Soul Link...), no file downloaded */
+  saveToSite(): void {
+    const editor = this.editor;
+    if (!editor || !this.hasChanges()) throw new SaveEditError('Nothing to save.');
+    const bytes = this.withPlannedParty(editor.writer.toBytes());
+    this.adopt(bytes, this.gameState.saveName() ?? 'radical-red.sav', true);
+    this.analytics.event('save-saved');
+  }
+
   download(): string {
     const editor = this.editor;
-    if (!editor || !this.hasChanges()) throw new SaveEditError('Nothing to download.');
-    const bytes = this.withPlannedParty(editor.writer.toBytes());
+    if (!editor || !this.canDownload()) throw new SaveEditError('Nothing to download.');
+    // Already saved here: the site's save is the file to give
+    const bytes = this.hasChanges()
+      ? this.withPlannedParty(editor.writer.toBytes())
+      : this.saveBytes.bytes()!.slice();
     const name = editedFileName(this.gameState.saveName());
 
     const url = URL.createObjectURL(
@@ -423,7 +484,13 @@ export class SaveEditorSession {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    // The edited save becomes the site's save
+    this.adopt(bytes, name, false);
+    this.analytics.event('save-downloaded');
+    return name;
+  }
+
+  /** The edited save becomes the site's save */
+  private adopt(bytes: Uint8Array, name: string, edited: boolean): void {
     const parsed = this.parser.parseSaveFile(bytes.slice().buffer);
     const renamed = this.renamed;
     if (parsed) {
@@ -431,9 +498,7 @@ export class SaveEditorSession {
       this.soulLink.renameMine(renamed);
       this.gameState.setSaveName(name);
     }
-    this.saveBytes.set(bytes);
-    this.analytics.event('save-downloaded');
-    return name;
+    this.saveBytes.set(bytes, edited);
   }
 
   private withPlannedParty(bytes: Uint8Array): Uint8Array {

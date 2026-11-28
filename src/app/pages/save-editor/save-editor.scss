@@ -724,3 +724,13 @@ app-move-learner {
 .nickname-input {
   width: 160px;
 }
+
+.trainer-id-input {
+  width: 90px;
+  font-variant-numeric: tabular-nums;
+}
+
+.link-button.inline {
+  align-self: center;
+  margin-top: 0;
+}

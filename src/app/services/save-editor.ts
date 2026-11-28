@@ -24,6 +24,8 @@ const PC_MAIN_SLOTS = 562;
 const PC_EXTRA_SLOTS = 63;
 const PARTY_COUNT_OFFSET = 0x34;
 
+/** Original trainer ID (u16) then secret ID (u16), at 0x04 in both formats */
+const OT_ID = 0x04;
 /** Nickname: 10 bytes at 0x08 in both formats */
 const NICKNAME = 0x08;
 const NICKNAME_LENGTH = 10;
@@ -157,6 +159,30 @@ export class SaveEditor {
       this.refreshPartyStats(bytes, edited, bytes.getU8(PARTY.level), personality);
     }
     return edited;
+  }
+
+  /**
+   * Original trainer ID (visible) and secret ID. Shininess depends on them: it is kept by
+   * changing the personality when needed, as the Shiny toggle does. Returns the updated Pokémon.
+   */
+  setTrainerId(mon: ParsedPokemon, trainerId: number, secretId: number): ParsedPokemon {
+    for (const id of [trainerId, secretId]) {
+      if (!Number.isInteger(id) || id < 0 || id > 0xffff) {
+        throw new SaveEditError('A trainer ID is a number from 0 to 65535.');
+      }
+    }
+    const bytes = this.locate(mon);
+    if (trainerId === mon.trainerId && secretId === mon.secretId) return mon;
+    bytes.setU32(OT_ID, ((secretId << 16) | trainerId) >>> 0);
+    const edited: ParsedPokemon = {
+      ...mon,
+      trainerId,
+      secretId,
+      isShiny: isShinyPersonality(mon.personality, trainerId, secretId),
+    };
+    return edited.isShiny === mon.isShiny
+      ? edited
+      : this.setNatureAndShiny(edited, { shiny: mon.isShiny });
   }
 
   /** Nickname (10 characters max). Returns the updated Pokémon. */
