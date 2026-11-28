@@ -1,4 +1,5 @@
-import { Component, input, linkedSignal } from '@angular/core';
+import { Component, inject, input, linkedSignal } from '@angular/core';
+import { PokemonDb } from '../../models/pokemon/pokemon-db';
 
 const FALLBACK = 'images/items/unknown.svg';
 
@@ -20,8 +21,13 @@ export class ItemIcon {
   /** Radical Red internal item ID */
   readonly id = input.required<number>();
   readonly name = input('');
+  private readonly db = inject(PokemonDb);
 
-  protected readonly src = linkedSignal(() => `images/items/${this.id()}.png`);
+  /** Icons are stored under Radical Red's item IDs */
+  protected readonly src = linkedSignal(() => {
+    this.db.game();
+    return `images/items/${this.db.itemIconId(this.id())}.png`;
+  });
 
   protected onError(): void {
     if (this.src() !== FALLBACK) this.src.set(FALLBACK);

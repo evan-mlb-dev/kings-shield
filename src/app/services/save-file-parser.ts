@@ -5,7 +5,23 @@ import type { AbilityRandomizer } from '../shared/ability-randomizer';
 
 export type { ParsedPokemon, Stats };
 
+/** Supported games, told apart by the save signature */
+export type GameId = 'radical-red' | 'unbound';
+
+export const GAME_NAMES: Readonly<Record<GameId, string>> = {
+  'radical-red': 'Radical Red',
+  unbound: 'Pokémon Unbound',
+};
+
+/** Section signature written by each game (Unbound's CFRU build uses its own) */
+export const GAME_SIGNATURES: ReadonlyMap<number, GameId> = new Map([
+  [0x08012025, 'radical-red'],
+  [0x01121999, 'unbound'],
+]);
+
 export interface ParsedSave {
+  /** Missing in saves stored before Unbound support: Radical Red */
+  game?: GameId;
   team: ParsedPokemon[];
   pc: ParsedPokemon[];
   trainerName: string;
@@ -39,7 +55,6 @@ export class SaveFileParser {
   /** One save block = 14 sections of 4 KB = 0xE000 */
   private readonly BLOCK_SIZE = this.SECTIONS_PER_BLOCK * this.SECTION_SIZE;
   private readonly FOOTER_OFFSET = 0xff4;
-  private readonly SIGNATURE = 0x08012025;
   /** Usable data bytes per section */
   private readonly SECTION_DATA_SIZE = 0xf80;
 
@@ -127,6 +142,7 @@ export class SaveFileParser {
 
     const trainerOff = sections.get(0)!;
     const trainerOtId = view.getUint32(trainerOff + 0x0a, true);
+    const game = GAME_SIGNATURES.get(view.getUint32(trainerOff + this.FOOTER_OFFSET + 4, true))!;
 
     const team = this.extractTeam(view, bytes, sections.get(1)!);
     const pcBuffer = this.buildPcBuffer(bytes, sections);
@@ -146,12 +162,14 @@ export class SaveFileParser {
       boxNames.push(this.decodeText(pcBuffer.subarray(o, o + this.BOX_NAME_SIZE)));
     }
 
-    const flags = bytes[trainerOff + this.RANDOMIZER_OFFSET];
+    // The randomizer options are a Radical Red feature: those bytes mean something else elsewhere
+    const flags = game === 'radical-red' ? bytes[trainerOff + this.RANDOMIZER_OFFSET] : 0;
     const randomizer: RandomizerOptions = {
       species: (flags & 0x1) !== 0,
       learnsets: (flags & 0x2) !== 0,
       abilities: (flags & 0x4) !== 0,
       restricted:
+        game === 'radical-red' &&
         (bytes[sections.get(this.RESTRICTED_SECTION)! + this.RESTRICTED_OFFSET] & 0x40) !== 0,
     };
     const runRandomizer: AbilityRandomizer = {
@@ -163,8 +181,9 @@ export class SaveFileParser {
       if (randomizer.learnsets) mon.randomMoves = runRandomizer;
     }
 
-    console.log(`Party: ${team.length} Pokémon, PC: ${pc.length} Pokémon.`);
+    console.log(`${GAME_NAMES[game]}: party ${team.length} Pokémon, PC ${pc.length} Pokémon.`);
     return {
+      game,
       team,
       pc,
       trainerName: this.decodeText(bytes.subarray(trainerOff, trainerOff + 7)),
@@ -222,7 +241,7 @@ export class SaveFileParser {
         const signature = view.getUint32(footer + 4, true);
         const index = view.getUint32(footer + 8, true);
 
-        if (signature !== this.SIGNATURE || sectionId >= this.SECTIONS_PER_BLOCK) continue;
+        if (!GAME_SIGNATURES.has(signature) || sectionId >= this.SECTIONS_PER_BLOCK) continue;
 
         sections.set(sectionId, sectorOffset);
         saveIndex = index;

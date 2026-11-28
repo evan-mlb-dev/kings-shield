@@ -1,3 +1,4 @@
+import { GAME_SIGNATURES } from './save-file-parser';
 const SECTION_SIZE = 0x1000;
 const SECTIONS_PER_BLOCK = 14;
 const BLOCK_SIZE = SECTIONS_PER_BLOCK * SECTION_SIZE;
@@ -5,7 +6,6 @@ const ID_OFFSET = 0xff4;
 const CHECKSUM_OFFSET = 0xff6;
 const SIGNATURE_OFFSET = 0xff8;
 const INDEX_OFFSET = 0xffc;
-const SIGNATURE = 0x08012025;
 const MIN_SAVE_SIZE = 2 * BLOCK_SIZE;
 
 const SECTION_13_SIZES = Array.from({ length: (0x52c - 0x450) / 4 + 1 }, (_, i) => 0x450 + i * 4);
@@ -106,7 +106,7 @@ function activeSections(view: DataView): Map<number, number> | null {
     for (let i = 0; i < SECTIONS_PER_BLOCK; i++) {
       const offset = block * BLOCK_SIZE + i * SECTION_SIZE;
       const id = view.getUint16(offset + ID_OFFSET, true);
-      if (view.getUint32(offset + SIGNATURE_OFFSET, true) !== SIGNATURE) continue;
+      if (!GAME_SIGNATURES.has(view.getUint32(offset + SIGNATURE_OFFSET, true))) continue;
       if (id >= SECTIONS_PER_BLOCK) continue;
       sections.set(id, offset);
       index = view.getUint32(offset + INDEX_OFFSET, true);

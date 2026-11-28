@@ -14,7 +14,7 @@ const LEVEL_NOTES: Readonly<Record<number, string>> = {
   28: ' (dusk)',
 };
 
-const EVOLUTIONS = evolutionsJson as unknown as Record<string, [number, number, number][]>;
+const RADICAL_RED = evolutionsJson as unknown as Record<string, [number, number, number][]>;
 
 export interface Evolution {
   speciesId: number;
@@ -60,7 +60,10 @@ export function evolutionsOf(speciesId: number, lookup: PokemonLookup): Evolutio
 
 function directEvolutionsOf(speciesId: number, lookup: PokemonLookup): Evolution[] {
   const seen = new Set<number>();
-  return (EVOLUTIONS[speciesId] ?? [])
+  // Evolutions of the game of the loaded save: Radical Red unless the lookup carries others
+  const evolutions =
+    (lookup.evolutions as Record<string, [number, number, number][]> | undefined) ?? RADICAL_RED;
+  return (evolutions[speciesId] ?? [])
     .filter(([, , target]) => lookup.species.has(target) && !seen.has(target) && seen.add(target))
     .map(([method, param, target]) => ({
       speciesId: target,

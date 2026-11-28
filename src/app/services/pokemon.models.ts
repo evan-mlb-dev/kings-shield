@@ -99,6 +99,9 @@ export interface SpeciesEntry {
 }
 
 export interface PokemonLookup {
+  /** Learnsets and evolutions of another game than Radical Red (see shared/learnset, evolutions) */
+  learnsets?: unknown;
+  evolutions?: unknown;
   species: ReadonlyMap<number, SpeciesEntry>;
   moves: ReadonlyMap<number, Move>;
   abilities: ReadonlyMap<number, Ability>;

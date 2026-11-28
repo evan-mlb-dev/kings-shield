@@ -2,7 +2,12 @@ import { computed, effect, inject, Injectable, signal, untracked } from '@angula
 import { PokemonDb } from '../models/pokemon/pokemon-db';
 import { Analytics } from '../services/analytics';
 import { AbilityChoice, SaveEditError, SaveEditor } from '../services/save-editor';
-import { ParsedPokemon, ParsedSave, SaveFileParser } from '../services/save-file-parser';
+import {
+  type GameId,
+  ParsedPokemon,
+  ParsedSave,
+  SaveFileParser,
+} from '../services/save-file-parser';
 import { SaveFileWriter } from '../services/save-file-writer';
 import { experienceForLevel, type GrowthRate, levelFromExperience } from '../shared/experience';
 import { ownedTmNumbers } from '../shared/learnset';
@@ -14,6 +19,8 @@ import { SoulLinkService } from './soul-link';
 export interface PokemonEdit {
   /** Evolution (new species) */
   species?: number;
+  /** New nickname (10 characters max) */
+  nickname?: string;
   level?: number;
   nature?: number;
   shiny?: boolean;
@@ -47,6 +54,12 @@ type ChangedFields = Pick<
   PendingChange,
   'evolvedFrom' | 'renamedFrom' | 'level' | 'nature' | 'shiny' | 'ability' | 'item' | 'moves'
 >;
+
+/** Items that change the ability: other slot (pill), hidden ability (patch, none in Unbound) */
+export const ABILITY_ITEMS: Readonly<Record<GameId, { pill: string; patch: string | null }>> = {
+  'radical-red': { pill: 'Ability Pill', patch: 'Dream Patch' },
+  unbound: { pill: 'Ability Capsule', patch: null },
+};
 
 @Injectable({
   providedIn: 'root',
@@ -111,7 +124,11 @@ export class SaveEditorSession {
     const bag = this.save()?.bagItems;
     if (!bag) return null;
     const names = new Set(bag.map((id) => this.db.items.get(id)?.name));
-    return { pill: names.has('Ability Pill'), patch: names.has('Dream Patch') };
+    const items = ABILITY_ITEMS[this.db.game()];
+    return {
+      pill: names.has(items.pill),
+      patch: items.patch !== null && names.has(items.patch),
+    };
   });
 
   readonly holdableItems = computed<{ items: number[]; berries: number[] } | null>(() => {
@@ -169,6 +186,12 @@ export class SaveEditorSession {
       if (edit.species !== undefined && edit.species !== mon.speciesId) {
         current = editor.setSpecies(current, edit.species);
         fields.evolvedFrom = this.db.species.get(mon.speciesId)?.name;
+      }
+      // After an evolution, which may rename a Pokémon named after its species
+      if (edit.nickname !== undefined && edit.nickname !== current.nickname) {
+        const before = current.nickname;
+        current = editor.setNickname(current, edit.nickname);
+        fields.renamedFrom = before;
       }
       if (edit.nature !== undefined || edit.shiny !== undefined) {
         const before = current;

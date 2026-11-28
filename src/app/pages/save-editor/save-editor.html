@@ -242,6 +242,21 @@
               <div class="details">
                 <div class="details-fields">
                   <div class="field">
+                    <label class="label" for="edit-nickname">Name</label>
+                    <input
+                      id="edit-nickname"
+                      class="text-input nickname-input"
+                      type="text"
+                      maxlength="10"
+                      autocomplete="off"
+                      spellcheck="false"
+                      title="10 characters max: letters, digits, spaces and simple symbols"
+                      [value]="entry.parsed.nickname"
+                      (change)="rename($any($event.target))"
+                      (keydown.enter)="$any($event.target).blur()"
+                    />
+                  </div>
+                  <div class="field">
                     <label class="label" for="edit-evolution">Evolve</label>
                     @if (evolutions().length) {
                       <select

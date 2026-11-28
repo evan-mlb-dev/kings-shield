@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import type { DataConnection, Peer, PeerError } from 'peerjs';
 import { Analytics } from '../services/analytics';
-import { ParsedPokemon } from '../services/save-file-parser';
+import { GAME_NAMES, type GameId, ParsedPokemon } from '../services/save-file-parser';
 import { GameStateService, MAX_TEAM_SIZE, pokemonKey } from './game-state';
 import { LevelCapState } from './level-cap';
 import { Run, RunMon, RunsState, swapRun } from './runs';
@@ -66,6 +66,8 @@ function writeSession(session: RoomSession | null): void {
 export interface SharedSave {
   trainerName: string;
   mons: ParsedPokemon[];
+  /** Missing from older versions of the app: Radical Red */
+  game?: GameId;
 }
 
 export interface SharedTeam {
@@ -662,7 +664,11 @@ export class SoulLinkService {
       const data = this.gameState.pkmnData();
       if (this.status() !== 'connected') return;
       const save = data
-        ? { trainerName: data.trainerName, mons: [...data.team, ...data.pc] }
+        ? {
+            trainerName: data.trainerName,
+            mons: [...data.team, ...data.pc],
+            game: data.game ?? 'radical-red',
+          }
         : null;
       untracked(() => this.send({ type: 'save', save }));
     });
@@ -911,9 +917,21 @@ export class SoulLinkService {
         if (mon) this.gameState.revive(mon);
         break;
       }
-      case 'save':
+      case 'save': {
+        // Species IDs only mean something within one game
+        const theirs = message.save?.game ?? 'radical-red';
+        const mine = this.gameState.pkmnData()?.game ?? 'radical-red';
+        if (message.save && theirs !== mine) {
+          this.partnerSave.set(null);
+          this.error.set(
+            `The other player loaded a ${GAME_NAMES[theirs]} save and you a ${GAME_NAMES[mine]} one: ` +
+              'Soul Link needs both players on the same game.',
+          );
+          break;
+        }
         this.partnerSave.set(message.save);
         break;
+      }
       case 'team':
         this.partnerTeam.set(message.team);
         break;

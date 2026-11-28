@@ -11,19 +11,42 @@ interface LearnsetData {
   species: Record<string, { levelup: [number, number][]; tm: number[]; tutor?: number[] }>;
 }
 
-const DATA = learnsetsJson as unknown as LearnsetData;
-const TM_MOVES = new Map(DATA.tms);
-const TUTORS = new Map(
-  DATA.tutors.map(([index, move, stage, place]) => [index, { move, stage, place }]),
-);
+const RADICAL_RED = learnsetsJson as unknown as LearnsetData;
 
-export function progressStage(levelCap: number): number {
-  const next = DATA.caps.find(([, , cap]) => cap >= levelCap);
-  return next ? next[0] : DATA.caps[DATA.caps.length - 1][0];
+interface Tables {
+  data: LearnsetData;
+  tmMoves: Map<number, number>;
+  tutors: Map<number, { move: number; stage: number; place: string }>;
+}
+const tables = new WeakMap<LearnsetData, Tables>();
+
+/** Learnsets of the game of the loaded save: Radical Red unless the lookup carries others */
+function tablesFor(lookup?: PokemonLookup): Tables {
+  const data = (lookup?.learnsets as LearnsetData | undefined) ?? RADICAL_RED;
+  let t = tables.get(data);
+  if (!t) {
+    t = {
+      data,
+      tmMoves: new Map(data.tms),
+      tutors: new Map(
+        data.tutors.map(([index, move, stage, place]) => [index, { move, stage, place }]),
+      ),
+    };
+    tables.set(data, t);
+  }
+  return t;
 }
 
-function bossBefore(stage: number): string | null {
-  const previous = DATA.caps.filter(([s]) => s < stage).pop();
+export function progressStage(levelCap: number, lookup?: PokemonLookup): number {
+  const { caps } = tablesFor(lookup).data;
+  // No progress splits known for this game: every tutor counts as reached
+  if (!caps.length) return Number.MAX_SAFE_INTEGER;
+  const next = caps.find(([, , cap]) => cap >= levelCap);
+  return next ? next[0] : caps[caps.length - 1][0];
+}
+
+function bossBefore(stage: number, data: LearnsetData): string | null {
+  const previous = data.caps.filter(([s]) => s < stage).pop();
   return previous ? previous[1].replace(/-\d+$/, '') : null;
 }
 
@@ -61,7 +84,8 @@ export function learnableMoves(
   stage: number | null = null,
   randomMoves: MoveRandomizer | null = null,
 ): LearnableMove[] {
-  const data = DATA.species[speciesId];
+  const t = tablesFor(lookup);
+  const data = t.data.species[speciesId];
   if (!data) return [];
   const byMove = new Map<number, LearnableMove>();
 
@@ -84,7 +108,7 @@ export function learnableMoves(
   }
 
   for (const tm of data.tm) {
-    const moveId = TM_MOVES.get(tm);
+    const moveId = t.tmMoves.get(tm);
     const move = moveId ? lookup.moves.get(moveId) : undefined;
     if (!move) continue;
     const owned = ownedTms?.has(tm) ?? false;
@@ -104,13 +128,13 @@ export function learnableMoves(
   }
 
   for (const index of data.tutor ?? []) {
-    const tutor = TUTORS.get(index);
+    const tutor = t.tutors.get(index);
     const move = tutor ? lookup.moves.get(tutor.move) : undefined;
     if (!tutor || !move) continue;
     const previous = byMove.get(move.id);
     if (previous?.available) continue;
     const reached = stage !== null && tutor.stage <= stage;
-    const after = bossBefore(tutor.stage);
+    const after = bossBefore(tutor.stage, t.data);
     const tutorNote = reached ? 'Tutor' : after ? `Tutor after ${after}` : 'Tutor';
     byMove.set(move.id, {
       move,

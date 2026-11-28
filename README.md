@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/github/package-json/v/evan-mlb-dev/kings-shield?label=version&color=8774f5)](CHANGELOG.md)
 [![Deploy](https://github.com/evan-mlb-dev/kings-shield/actions/workflows/deploy.yml/badge.svg)](https://github.com/evan-mlb-dev/kings-shield/actions/workflows/deploy.yml)
 
-A team builder for **Pokémon Radical Red** (Nuzlocke friendly). Load your `.sav` file, build a team from your party and PC, and check its type coverage.
+A team builder for **Pokémon Radical Red** and **Pokémon Unbound** (Nuzlocke friendly). Load your `.sav` file, build a team from your party and PC, and check its type coverage.
 
 **Live site:** https://evan-mlb-dev.github.io/kings-shield/
 
@@ -49,6 +49,7 @@ The Pokémon data lives in `src/app/data/`. Scripts to refresh it:
 | `node src/app/data/fetch-shiny-sprites.mjs` | `public/images/pokemon/shiny/`: shiny front sprites |
 | `node src/app/data/fetch-learnsets.mjs` | `learnsets.json`: level-up moves, TMs and move tutors (with where and when they are reached) of every species (Save Editor) |
 | `node src/app/data/fetch-move-descriptions.mjs` | Move descriptions from Smogon in `moves.json` (run after `build-pokemon-db.mjs`) |
+| `node src/app/data/build-unbound-data.mjs` | `unbound/game-data.json`: Pokémon Unbound species, moves, abilities, items, learnsets and evolutions (loaded only for Unbound saves) |
 | `node src/app/data/fetch-move-targets.mjs` | Spread moves (everyone / both foes) and priorities in `moves.json` (run after `build-pokemon-db.mjs`) |
 
 ## Versioning
@@ -69,6 +70,7 @@ Every push to `main` builds the app and publishes it on GitHub Pages (`.github/w
 
 - Radical Red data and sprites: [Radical Red Pokédex](https://github.com/JwowSquared/Radical-Red-Pokedex)
 - Random abilities and learnsets (in-game randomizer options, formulas and ROM tables): [sangvo1991's Radical Red Pokédex](https://github.com/sangvo1991/Radical-Red-Pokedex)
+- Pokémon Unbound data: [Skeli789/Dynamic-Pokemon-Expansion](https://github.com/Skeli789/Dynamic-Pokemon-Expansion/tree/Unbound) (Unbound branch, WTFPL) and [Skeli789/Complete-Fire-Red-Upgrade](https://github.com/Skeli789/Complete-Fire-Red-Upgrade) (move stats, move and ability names)
 - Smogon tiers and some sprites: [Pokémon Showdown](https://play.pokemonshowdown.com/)
 - Smogon analyses (dex links to the highest tier): [data.pkmn.cc](https://data.pkmn.cc/)
 - Item sprites and growth rates: [PokeAPI](https://pokeapi.co/)

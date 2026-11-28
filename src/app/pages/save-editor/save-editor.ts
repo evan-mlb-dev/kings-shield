@@ -32,7 +32,7 @@ import { pokemonKey } from '../../states/game-state';
 import { randomizedAbilityIds } from '../../shared/ability-randomizer';
 import { metLocationNickname } from '../../shared/met-locations';
 import { LevelCapState } from '../../states/level-cap';
-import { SaveEditorSession } from '../../states/save-editor-session';
+import { ABILITY_ITEMS, SaveEditorSession } from '../../states/save-editor-session';
 import { SidePanelState } from '../../states/side-panel';
 
 const SMOGON_DEX = 'https://www.smogon.com/dex/';
@@ -147,6 +147,25 @@ export class SaveEditorPage {
     }
   }
 
+  /** Applied on blur / Enter, not on every key */
+  protected rename(input: HTMLInputElement): void {
+    const entry = this.selected();
+    if (!entry) return;
+    const name = input.value.trim();
+    if (!name || name === entry.parsed.nickname) {
+      input.value = entry.parsed.nickname;
+      return;
+    }
+    try {
+      this.session.apply(entry.parsed, { nickname: name });
+      const after = this.session.changes().at(-1)?.key;
+      if (after) this.selectedKey.set(after);
+    } catch (error) {
+      input.value = entry.parsed.nickname;
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    }
+  }
+
   private renameAfterMetLocation(): void {
     try {
       const renamed = this.session.setNicknameToAll((mon) => metLocationNickname(mon.metLocation));
@@ -256,11 +275,14 @@ export class SaveEditorPage {
       .map((i) => {
         const ability = this.db.abilities.get(ids[i]);
         const choice = (i === 0 ? 2 : i - 1) as AbilityChoice;
+        const items = ABILITY_ITEMS[this.db.game()];
         const needed: string[] = [];
-        if ((choice === 2) !== (current === 2)) needed.push('Dream Patch');
-        if (choice !== 2 && choice !== entry.parsed.abilitySlot) needed.push('Ability Pill');
+        if ((choice === 2) !== (current === 2)) {
+          needed.push(items.patch ?? 'an item this game does not have');
+        }
+        if (choice !== 2 && choice !== entry.parsed.abilitySlot) needed.push(items.pill);
         const missing = needed.filter((item) =>
-          item === 'Dream Patch' ? !owned?.patch : !owned?.pill,
+          item === items.pill ? !owned?.pill : !owned?.patch,
         );
         return {
           choice,
@@ -461,7 +483,7 @@ export class SaveEditorPage {
   /** The level field cannot go above the level cap */
   protected readonly maxLevel = computed(() => Math.min(100, this.levelCap()));
 
-  private readonly stage = computed(() => progressStage(this.levelCap()));
+  private readonly stage = computed(() => progressStage(this.levelCap(), this.db));
 
   protected readonly levelLocked = computed(() => {
     const parsed = this.selected()?.parsed;

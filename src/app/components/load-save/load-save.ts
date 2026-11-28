@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { PokemonDb } from '../../models/pokemon/pokemon-db';
 import { Analytics } from '../../services/analytics';
 import { SaveFileParser } from '../../services/save-file-parser';
 import { GameStateService } from '../../states/game-state';
@@ -17,6 +18,7 @@ export class LoadSave {
   protected gameState = inject(GameStateService);
   private saveBytes = inject(SaveBytesState);
   private analytics = inject(Analytics);
+  private db = inject(PokemonDb);
 
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
@@ -25,7 +27,7 @@ export class LoadSave {
     if (file) {
       const reader = new FileReader();
 
-      reader.onload = (e: any) => {
+      reader.onload = async (e: any) => {
         try {
           const arrayBuffer = e.target.result;
           const parseResult = this.saveFileParser.parseSaveFile(arrayBuffer);
@@ -36,6 +38,8 @@ export class LoadSave {
             alert(`${file.name} is not a Radical Red save. Pick the .sav file of your emulator.`);
             return;
           }
+          // The game's data first: everything shown next reads it
+          await this.db.useGame(parseResult.game ?? 'radical-red');
           this.gameState.setSaveName(file.name);
           this.gameState.setPkmnData(parseResult);
           // Kept byte for byte for the Save Editor
