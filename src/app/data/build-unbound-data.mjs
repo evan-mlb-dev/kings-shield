@@ -24,7 +24,7 @@ const local = async (file) => JSON.parse(await readFile(new URL(file, import.met
 const norm = (s) =>
   s
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '');
 

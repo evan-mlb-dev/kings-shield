@@ -288,6 +288,33 @@ export class SaveEditorSession {
     return count;
   }
 
+  /** Every Pokémon (team and PC) gets the ball ballOf gives; null leaves it as it is */
+  setBallToAll(ballOf: (mon: ParsedPokemon) => number | null): number {
+    const editor = this.editor;
+    const { team, pc } = this.editable();
+    if (!editor || !this.save()) throw new SaveEditError('No save to edit.');
+    const backup = editor.writer.bytes.slice();
+    const changesBackup = this._changes();
+    let changed = 0;
+    try {
+      for (const mon of [...team, ...pc]) {
+        const ball = ballOf(mon);
+        if (ball === null || ball === mon.ball) continue;
+        editor.setBall(mon, ball);
+        const key = pokemonKey(mon);
+        this.recordChange(key, key, mon, { ball: ballName(ball) });
+        changed++;
+      }
+    } catch (error) {
+      editor.writer.bytes.set(backup);
+      this._changes.set(changesBackup);
+      this.reparse();
+      throw error;
+    }
+    this.reparse();
+    return changed;
+  }
+
   /** Renames every Pokémon (team and PC) with the name nameOf gives; null leaves it as it is */
   setNicknameToAll(nameOf: (mon: ParsedPokemon) => string | null): number {
     const editor = this.editor;

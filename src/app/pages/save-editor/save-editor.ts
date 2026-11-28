@@ -32,6 +32,7 @@ import { pokemonKey } from '../../states/game-state';
 import { randomizedAbilityIds } from '../../shared/ability-randomizer';
 import { metLocationNickname } from '../../shared/met-locations';
 import { BallPicker } from '../../components/ball-picker/ball-picker';
+import { BallMatcher } from '../../services/ball-matcher';
 import { LevelCapState } from '../../states/level-cap';
 import { ABILITY_ITEMS, SaveEditorSession } from '../../states/save-editor-session';
 import { SidePanelState } from '../../states/side-panel';
@@ -77,6 +78,7 @@ interface Entry {
 export class SaveEditorPage {
   private readonly db = inject(PokemonDb);
   protected readonly session = inject(SaveEditorSession);
+  private readonly ballMatcher = inject(BallMatcher);
 
   protected readonly search = signal('');
 
@@ -129,6 +131,12 @@ export class SaveEditorPage {
     return [
       ...items,
       { id: 'friendship:max', label: 'Max friendship', itemId: sootheBell },
+      {
+        id: 'ball:colors',
+        label: 'Match balls to colors',
+        itemId: [...this.db.items.values()].find((i) => i.name === 'Premier Ball')?.id,
+        blocked: this.matchingBalls() ? 'Working…' : undefined,
+      },
       { id: 'rename:location', label: 'Name after met location' },
     ];
   });
@@ -141,6 +149,10 @@ export class SaveEditorPage {
     }
     if (kind === 'friendship') {
       this.maxFriendship();
+      return;
+    }
+    if (kind === 'ball') {
+      void this.matchBallsToColors();
       return;
     }
     if (kind !== 'item') return;
@@ -174,6 +186,28 @@ export class SaveEditorPage {
     } catch (error) {
       input.value = entry.parsed.nickname;
       this.message.set({ kind: 'error', text: (error as Error).message });
+    }
+  }
+
+  protected readonly matchingBalls = signal(false);
+
+  /** Reads every sprite first (async), then writes all the balls at once */
+  private async matchBallsToColors(): Promise<void> {
+    const { team, pc } = this.session.editable();
+    this.matchingBalls.set(true);
+    try {
+      const balls = await this.ballMatcher.match([...team, ...pc], pokemonKey);
+      const changed = this.session.setBallToAll((mon) => balls.get(pokemonKey(mon)) ?? null);
+      this.message.set({
+        kind: 'ok',
+        text: changed
+          ? `${changed} Pokémon got the ball matching their colors.`
+          : 'Every Pokémon already has the ball matching its colors.',
+      });
+    } catch (error) {
+      this.message.set({ kind: 'error', text: (error as Error).message });
+    } finally {
+      this.matchingBalls.set(false);
     }
   }
 

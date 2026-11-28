@@ -14,7 +14,12 @@ import { BALLS } from '../../shared/balls';
 import { ItemIcon } from '../../shared/icons/item-icon';
 
 /** Lowercase, no accents ("Poké Ball" -> "poke ball") */
-const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const normalize = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 interface BallOption {
   ball: number;
