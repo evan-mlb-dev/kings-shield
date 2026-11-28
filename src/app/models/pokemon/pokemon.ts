@@ -23,6 +23,8 @@ export interface ParsedPokemon {
   heldItem: number;
   experience: number;
   friendship: number;
+  /** Ball it was caught in (shared/balls.ts numbering); missing in saves cached before */
+  ball?: number;
   /** Move IDs (empty moves removed) */
   moves: number[];
   /** Remaining PP (party only) */

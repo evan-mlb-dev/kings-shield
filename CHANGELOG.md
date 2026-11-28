@@ -8,6 +8,7 @@ All notable changes to King's Shield. Versions follow [Semantic Versioning](http
 
 ### Added
 
+- Save Editor: rename a Pokémon, and change the ball it was caught in (with its icon).
 - Pokémon Unbound saves: recognised automatically, with Unbound's own species, forms, moves,
   abilities, items, learnsets and evolutions; Team Building, coverage and the Save Editor work on
   them. Soul Link needs both players on the same game.

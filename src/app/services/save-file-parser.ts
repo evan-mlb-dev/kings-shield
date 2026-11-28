@@ -322,6 +322,8 @@ export class SaveFileParser {
       experience: d.getUint32(G + 4, true),
       ppBonuses: d.getUint8(G + 8),
       friendship: d.getUint8(G + 9),
+      // CFRU: byte after friendship (the vanilla origins bits stay at 0)
+      ball: d.getUint8(G + 10),
       moves: valid.map((i) => movesRaw[i]),
       pp: valid.map((i) => ppRaw[i]),
       evs: {
@@ -447,6 +449,7 @@ export class SaveFileParser {
       experience: view.getUint32(offset + 0x20, true),
       ppBonuses: bytes[offset + 0x24],
       friendship: bytes[offset + 0x25],
+      ball: bytes[offset + 0x26],
       moves,
       pp: [],
       evs: {

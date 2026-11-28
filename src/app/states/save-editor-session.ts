@@ -11,6 +11,7 @@ import {
 import { SaveFileWriter } from '../services/save-file-writer';
 import { experienceForLevel, type GrowthRate, levelFromExperience } from '../shared/experience';
 import { ownedTmNumbers } from '../shared/learnset';
+import { ballName } from '../shared/balls';
 import { GameStateService, pokemonKey } from './game-state';
 import { SaveBytesState } from './save-bytes';
 import { SoulLinkService } from './soul-link';
@@ -28,6 +29,8 @@ export interface PokemonEdit {
   ability?: AbilityChoice;
   /** Held item ID (0: none) */
   item?: number;
+  /** Ball it was caught in */
+  ball?: number;
   moves?: number[];
 }
 
@@ -47,12 +50,21 @@ export interface PendingChange {
   ability?: string;
   /** Held item name ("None" when taken off) */
   item?: string;
+  ball?: string;
   moves?: string[];
 }
 
 type ChangedFields = Pick<
   PendingChange,
-  'evolvedFrom' | 'renamedFrom' | 'level' | 'nature' | 'shiny' | 'ability' | 'item' | 'moves'
+  | 'evolvedFrom'
+  | 'renamedFrom'
+  | 'level'
+  | 'nature'
+  | 'shiny'
+  | 'ability'
+  | 'item'
+  | 'ball'
+  | 'moves'
 >;
 
 /** Items that change the ability: other slot (pill), hidden ability (patch, none in Unbound) */
@@ -209,6 +221,10 @@ export class SaveEditorSession {
           const id = ids[edit.ability === 2 ? 0 : 1 + edit.ability];
           fields.ability = this.db.abilities.get(id)?.name ?? `#${id}`;
         }
+      }
+      if (edit.ball !== undefined && edit.ball !== current.ball) {
+        current = editor.setBall(current, edit.ball);
+        fields.ball = ballName(edit.ball);
       }
       if (edit.item !== undefined && edit.item !== current.heldItem) {
         current = editor.setHeldItem(current, edit.item);

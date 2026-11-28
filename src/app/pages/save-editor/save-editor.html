@@ -255,6 +255,9 @@
                       (change)="rename($any($event.target))"
                       (keydown.enter)="$any($event.target).blur()"
                     />
+                    @if (ball() !== null) {
+                      <app-ball-picker compact [value]="ball()" (valueChange)="ball.set($event)" />
+                    }
                   </div>
                   <div class="field">
                     <label class="label" for="edit-evolution">Evolve</label>

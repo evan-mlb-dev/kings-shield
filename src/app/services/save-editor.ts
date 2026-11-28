@@ -1,6 +1,7 @@
 import type { PokemonLookup } from './pokemon.models';
 import type { ParsedPokemon, ParsedSave, Stats } from './save-file-parser';
 import { SaveFileWriter } from './save-file-writer';
+import { BALLS } from '../shared/balls';
 import { SYMBOL_BYTES } from './gen3-text';
 import {
   experienceForLevel,
@@ -31,6 +32,8 @@ const NICKNAME_LENGTH = 10;
 const PARTY = {
   species: 0x20,
   heldItem: 0x22,
+  /** CFRU: byte after friendship */
+  ball: 0x2a,
   dataChecksum: 0x1c,
   experience: 0x24,
   ppBonuses: 0x28,
@@ -49,6 +52,7 @@ const PARTY = {
 const BOX = {
   species: 0x1c,
   heldItem: 0x1e,
+  ball: 0x26,
   experience: 0x20,
   ppBonuses: 0x24,
   /** 4 moves x 10 bits, packed over 5 bytes */
@@ -163,6 +167,17 @@ export class SaveEditor {
     if (name === mon.nickname) return mon;
     encoded.forEach((b, i) => bytes.setU8(NICKNAME + i, b));
     return { ...mon, nickname: name };
+  }
+
+  /** Ball it was caught in (shared/balls.ts numbering). Returns the updated Pokémon. */
+  setBall(mon: ParsedPokemon, ball: number): ParsedPokemon {
+    if (!Number.isInteger(ball) || ball < 0 || ball >= BALLS.length) {
+      throw new SaveEditError(`Unknown ball #${ball}.`);
+    }
+    const bytes = this.locate(mon);
+    if (ball === mon.ball) return mon;
+    bytes.setU8(mon.location === 'party' ? PARTY.ball : BOX.ball, ball);
+    return { ...mon, ball };
   }
 
   /** Held item (0: none). Returns the updated Pokémon. */

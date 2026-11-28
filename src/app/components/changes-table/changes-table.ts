@@ -12,6 +12,7 @@ import { PendingChange } from '../../states/save-editor-session';
       <span role="columnheader">Shiny</span>
       <span role="columnheader">Ability</span>
       <span role="columnheader">Item</span>
+      <span role="columnheader">Ball</span>
       <span role="columnheader">Moves</span>
     </div>
     @for (change of changes(); track change.key) {
@@ -35,6 +36,7 @@ import { PendingChange } from '../../states/save-editor-session';
         }}</span>
         <span role="cell">{{ change.ability ?? '—' }}</span>
         <span role="cell">{{ change.item ?? '—' }}</span>
+        <span role="cell">{{ change.ball ?? '—' }}</span>
         <span role="cell">{{ change.moves?.join(', ') ?? '—' }}</span>
       </div>
     }
@@ -45,11 +47,14 @@ import { PendingChange } from '../../states/save-editor-session';
       flex-direction: column;
       gap: 4px;
       font-size: 0.72rem;
+      /* Narrow screens: the table scrolls in its own box */
+      overflow-x: auto;
     }
 
     .change-row {
       display: grid;
-      grid-template-columns: 1.2fr 1.2fr 0.6fr 1fr 0.8fr 1fr 1fr 3fr;
+      grid-template-columns: 1.2fr 1.2fr 0.6fr 1fr 0.8fr 1fr 1fr 0.9fr 3fr;
+      min-width: 680px;
       gap: 12px;
       align-items: baseline;
       padding: 3px 0;

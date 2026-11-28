@@ -1,0 +1,78 @@
+<span class="label" id="ball-label" [class.visually-hidden]="compact()">Ball</span>
+<div class="picker">
+  <button
+    type="button"
+    class="trigger"
+    aria-haspopup="listbox"
+    aria-labelledby="ball-label"
+    [attr.aria-expanded]="open()"
+    [disabled]="disabled() || value() === null"
+    [title]="
+      value() === null
+        ? 'Load your save again to see and change the ball'
+        : 'Caught in a ' + (selected()?.name ?? 'ball') + ': click to change it'
+    "
+    (click)="toggle()"
+    (keydown)="onKeydown($event)"
+  >
+    @if (selected(); as option) {
+      @if (compact()) {
+        <span class="icon">
+          @if (option.itemId) {
+            <app-item-icon [id]="option.itemId" [name]="option.name" />
+          }
+        </span>
+      } @else {
+        <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: option }" />
+      }
+    } @else {
+      <span class="icon"></span>
+      <span class="name none">Unknown</span>
+    }
+    <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" />
+    </svg>
+  </button>
+
+  @if (open()) {
+    <div class="popup">
+      <input
+        class="search"
+        type="text"
+        placeholder="Type to search a ball…"
+        aria-label="Search a ball"
+        autocomplete="off"
+        [value]="query()"
+        (input)="search($any($event.target).value)"
+        (keydown)="onKeydown($event)"
+      />
+      <ul class="list" role="listbox" aria-labelledby="ball-label">
+        @for (option of visible(); track option.ball) {
+          <li
+            class="option"
+            role="option"
+            [attr.data-ball]="option.ball"
+            [attr.aria-selected]="option.ball === value()"
+            [class.selected]="option.ball === value()"
+            [class.active]="option.ball === activeBall()"
+            (mouseenter)="activeBall.set(option.ball)"
+            (mousedown)="$event.preventDefault(); pick(option)"
+          >
+            <ng-container *ngTemplateOutlet="optionContent; context: { $implicit: option }" />
+          </li>
+        } @empty {
+          <li class="no-match">No ball matches “{{ query() }}”.</li>
+        }
+      </ul>
+    </div>
+  }
+</div>
+
+<ng-template #optionContent let-option>
+  <span class="icon">
+    @if (option.itemId) {
+      <app-item-icon [id]="option.itemId" [name]="option.name" />
+    }
+  </span>
+  <span class="name">{{ option.name }}</span>
+</ng-template>

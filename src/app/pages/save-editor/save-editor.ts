@@ -31,6 +31,7 @@ import { TypeIcon } from '../../shared/icons/type-icon';
 import { pokemonKey } from '../../states/game-state';
 import { randomizedAbilityIds } from '../../shared/ability-randomizer';
 import { metLocationNickname } from '../../shared/met-locations';
+import { BallPicker } from '../../components/ball-picker/ball-picker';
 import { LevelCapState } from '../../states/level-cap';
 import { ABILITY_ITEMS, SaveEditorSession } from '../../states/save-editor-session';
 import { SidePanelState } from '../../states/side-panel';
@@ -55,6 +56,7 @@ interface Entry {
 @Component({
   selector: 'app-save-editor-page',
   imports: [
+    BallPicker,
     MassActionMenu,
     PokemonSprite,
     TypeIcon,
@@ -249,6 +251,9 @@ export class SaveEditorPage {
 
   /** Held item (0: none) */
   protected readonly heldItem = linkedSignal(() => this.selected()?.parsed.heldItem ?? 0);
+
+  /** null: a save read before balls were (the ball is not known) */
+  protected readonly ball = linkedSignal(() => this.selected()?.parsed.ball ?? null);
 
   protected readonly currentAbility = computed<AbilityChoice>(() => {
     const parsed = this.selected()?.parsed;
@@ -605,6 +610,7 @@ export class SaveEditorPage {
       shiny: this.shiny() !== mon.isShiny ? this.shiny() : undefined,
       ability: this.ability() !== this.currentAbility() ? this.ability() : undefined,
       item: this.heldItem() !== entry.parsed.heldItem ? this.heldItem() : undefined,
+      ball: this.ball() !== null && this.ball() !== entry.parsed.ball ? this.ball()! : undefined,
       moves: movesChanged ? moves.filter((id) => id > 0) : undefined,
     };
   });
@@ -671,6 +677,7 @@ export class SaveEditorPage {
     this.shiny.set(entry.mon.isShiny);
     this.ability.set(this.currentAbility());
     this.heldItem.set(entry.parsed.heldItem);
+    this.ball.set(entry.parsed.ball ?? null);
     this.slotLayouts.update((layouts) => {
       const next = new Map(layouts);
       next.delete(entry.key);
